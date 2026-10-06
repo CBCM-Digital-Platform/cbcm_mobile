@@ -1,18 +1,26 @@
 /// Backend endpoint paths, relative to the base URL in .env
-/// (which already ends in /api, so don't repeat it here).
+/// (which now ends in /api/v1).
 ///
-/// PROVISIONAL: the backend hasn't started. Confirm every path with the
-/// backend team before Week 2 and update this file if they differ.
+/// Source: CBCM Backend Task Division & API Documentation Plan.
+/// Auth module owned by Developer 1. Still: "draft contracts... must be
+/// confirmed against actual implementation" per that doc, so re-check
+/// against the real OpenAPI spec once it exists.
 class ApiEndpoints {
   ApiEndpoints._();
 
   // Auth
   static const login = '/auth/login';
-  static const refresh = '/auth/refresh';
+  static const refreshToken = '/auth/refresh-token';
+  static const logout = '/auth/logout';
+  static const forgotPassword = '/auth/forgot-password';
+  static const resetPassword = '/auth/reset-password';
+  static const changePassword = '/auth/change-password';
+  static const session = '/auth/session';
 
   // Current user
   static const me = '/users/me';
+  static const mePreferences = '/users/me/preferences';
 
   // Knowledge score (current score, shown inline in assessments)
-  static const knowledgeScores = '/knowledge-scores';
+  static const knowledgeTrend = '/progress/knowledge-trend';
 }

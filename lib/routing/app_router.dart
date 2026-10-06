@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/offline/connectivity_service.dart';
 import '../core/widgets/app_button.dart';
 import '../core/widgets/app_button_row.dart';
+import '../core/widgets/placeholder_page.dart';
 import '../features/auth/domain/user_role.dart';
 import '../features/auth/presentation/current_role_provider.dart';
 import '../features/auth/presentation/login_page.dart';
+import '../features/auth/presentation/reset_password_page.dart';
 import '../features/mentee/dashboard/presentation/mentee_dashboard_page.dart';
+import '../features/mentee/learning/domain/curriculum.dart';
+import '../features/mentee/learning/presentation/module_detail_page.dart';
+import '../features/mentee/presentation/mentee_shell.dart';
 import '../features/mentor/dashboard/presentation/mentor_dashboard_page.dart';
 import 'app_routes.dart';
-import '../core/offline/connectivity_service.dart';
 
-// Temporary dev page, removed once real login and role routing are in place
+// Temporary dev page, removed once Mentee/Mentor dashboards are real
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
@@ -19,7 +24,6 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final role = ref.watch(currentRoleProvider);
     final connectivity = ref.watch(connectivityProvider);
-    final roleNotifier = ref.read(currentRoleProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Home')),
@@ -31,36 +35,29 @@ class HomePage extends ConsumerWidget {
             children: [
               Text('Current role: ${role?.name ?? 'none'}'),
               Text('Connectivity: ${connectivity.name}'),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => roleNotifier.setRole(UserRole.mentee),
-                child: const Text('Set role: Mentee'),
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => roleNotifier.setRole(UserRole.mentor),
-                child: const Text('Set role: Mentor'),
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => roleNotifier.setRole(null),
-                child: const Text('Clear role'),
-              ),
               const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => context.go(AppRoutes.login),
-                child: const Text('Go to Login'),
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => context.go(AppRoutes.menteeDashboard),
-                child: const Text('Mentee Dashboard'),
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => context.go(AppRoutes.mentorDashboard),
-                child: const Text('Mentor Dashboard'),
-              ),
+              if (role == null)
+                FilledButton(
+                  onPressed: () => context.go(AppRoutes.login),
+                  child: const Text('Go to Login'),
+                )
+              else ...[
+                FilledButton(
+                  onPressed: () => context.go(
+                    role == UserRole.mentee
+                        ? AppRoutes.menteeDashboard
+                        : AppRoutes.mentorDashboard,
+                  ),
+                  child: const Text('Go to Dashboard'),
+                ),
+                const SizedBox(height: 12),
+                AppButton(
+                  label: 'Logout',
+                  variant: AppButtonVariant.danger,
+                  onPressed: () =>
+                      ref.read(currentRoleProvider.notifier).logout(),
+                ),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: 320,
@@ -108,7 +105,6 @@ class HomePage extends ConsumerWidget {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Tells the router to re-check redirects whenever the role changes
   final refresh = ValueNotifier<int>(0);
   ref.listen(currentRoleProvider, (previous, next) => refresh.value++);
   ref.onDispose(refresh.dispose);
@@ -130,7 +126,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ? AppRoutes.menteeDashboard
             : AppRoutes.login;
       }
-      return null; // no redirect needed
+      return null;
     },
     routes: [
       GoRoute(
@@ -142,12 +138,60 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
-        path: AppRoutes.menteeDashboard,
-        builder: (context, state) => const MenteeDashboardPage(),
+        path: AppRoutes.resetPassword,
+        builder: (context, state) => const ResetPasswordPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.moduleDetail,
+        builder: (context, state) {
+          final module = state.extra as CurriculumModule;
+          return ModuleDetailPage(module: module);
+        },
       ),
       GoRoute(
         path: AppRoutes.mentorDashboard,
         builder: (context, state) => const MentorDashboardPage(),
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MenteeShell(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.menteeDashboard,
+              builder: (context, state) => const MenteeDashboardPage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.menteeLearn,
+              builder: (context, state) =>
+                  const PlaceholderPage(title: 'Learn'),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.menteeClinical,
+              builder: (context, state) =>
+                  const PlaceholderPage(title: 'Clinical'),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.menteeAiAssist,
+              builder: (context, state) =>
+                  const PlaceholderPage(title: 'AI Assist'),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.menteeMentorChat,
+              builder: (context, state) =>
+                  const PlaceholderPage(title: 'Mentor'),
+            ),
+          ]),
+        ],
       ),
     ],
   );

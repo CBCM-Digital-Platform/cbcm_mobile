@@ -1,12 +1,7 @@
 import 'user.dart';
 
-class AuthException implements Exception {
-  AuthException(this.message);
-  final String message;
-}
-
 abstract class AuthRepository {
-  /// Throws AuthException on invalid credentials.
+  /// Throws ApiException on invalid credentials or server error.
   Future<User> login({required String email, required String password});
 
   Future<void> logout();

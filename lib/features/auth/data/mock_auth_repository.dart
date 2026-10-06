@@ -1,3 +1,4 @@
+import '../../../core/network/api_response.dart';
 import '../domain/auth_repository.dart';
 import '../domain/user.dart';
 import '../domain/user_role.dart';
@@ -29,7 +30,12 @@ class MockAuthRepository implements AuthRepository {
     if (email == _mentorUser.email && password == 'password') {
       return _mentorUser;
     }
-    throw AuthException('Invalid email or password');
+    throw ApiException(
+      const ApiError(
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password',
+      ),
+    );
   }
 
   @override
