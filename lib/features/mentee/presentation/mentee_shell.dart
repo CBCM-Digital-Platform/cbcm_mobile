@@ -1,65 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/colors.dart';
+import '../../../core/widgets/app_bottom_nav_shell.dart';
 
 class MenteeShell extends StatelessWidget {
   const MenteeShell({super.key, required this.navigationShell});
-
   final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: Colors.white,
-          indicatorColor: Colors.transparent, // no pill background, color-only selection
-          iconTheme: WidgetStateProperty.resolveWith((states) {
-            final selected = states.contains(WidgetState.selected);
-            return IconThemeData(
-              color: selected ? AppColors.pageIndicator : Colors.grey,
-            );
-          }),
-          labelTextStyle: WidgetStateProperty.resolveWith((states) {
-            final selected = states.contains(WidgetState.selected);
-            return TextStyle(
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              color: selected ? AppColors.pageIndicator : Colors.grey,
-            );
-          }),
-        ),
-        child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: (index) => navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          ),
-          destinations: const [
-            NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Home'),
-            NavigationDestination(
-                icon: Icon(Icons.school_outlined),
-                selectedIcon: Icon(Icons.school),
-                label: 'Learn'),
-            NavigationDestination(
-                icon: Icon(Icons.medical_services_outlined),
-                selectedIcon: Icon(Icons.medical_services),
-                label: 'Clinical'),
-            NavigationDestination(
-                icon: Icon(Icons.smart_toy_outlined),
-                selectedIcon: Icon(Icons.smart_toy),
-                label: 'AI Assist'),
-            NavigationDestination(
-                icon: Icon(Icons.people_outline),
-                selectedIcon: Icon(Icons.people),
-                label: 'Mentor'),
-          ],
-        ),
-      ),
+    return AppBottomNavShell(
+      navigationShell: navigationShell,
+      items: const [
+        NavItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'Home'),
+        NavItem(icon: Icons.school_outlined, selectedIcon: Icons.school, label: 'Learn'),
+        NavItem(icon: Icons.chat_bubble_outline, selectedIcon: Icons.chat_bubble, label: 'Message'),
+        NavItem(icon: Icons.smart_toy_outlined, selectedIcon: Icons.smart_toy, label: 'AI Assist'),
+        NavItem(icon: Icons.people_outline, selectedIcon: Icons.people, label: 'Mentor'),
+      ],
     );
   }
 }

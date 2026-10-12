@@ -43,6 +43,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go(AppRoutes.home),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -64,18 +72,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Placeholder mark — swap for the real logo asset once available
-                   Image.asset('assets/images/logo.jpg', height: 48),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Center for Adolescent Girls Health',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
+                    Image.asset(
+                      'assets/images/logo.jpg',
+                      height: 72,
+                      fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     Text(
                       'Secure Clinical Login',
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -86,7 +88,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 4),
                     Text(
                       'Access your mentorship dashboard.',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                     ),
                     const SizedBox(height: 24),
                     const Align(
@@ -167,12 +171,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   password: _passwordController.text,
                                 ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    AppButton(
-                      label: 'Back to Home',
-                      variant: AppButtonVariant.secondary,
-                      onPressed: () => context.go(AppRoutes.home),
                     ),
                   ],
                 ),

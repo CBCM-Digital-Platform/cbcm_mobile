@@ -37,7 +37,31 @@ class CurriculumSeedData {
           ]),
           CurriculumModule(id: 'm4', number: 4, title: 'Fundal Height Assessment & Palpation', lessons: [
             Lesson(id: 'l6', title: 'Symphysis-Fundal Height Principles', durationMinutes: 15, status: LessonStatus.completed),
-            Lesson(id: 'l7', title: 'Fundal Height & Palpation Assessment', durationMinutes: 25, status: LessonStatus.inProgress, progressPercent: 75, isAudio: true),
+                       Lesson(
+              id: 'l7',
+              title: 'Fundal Height & Palpation Assessment',
+              durationMinutes: 25,
+              status: LessonStatus.inProgress,
+              progressPercent: 75,
+              isAudio: true,
+              content:
+                  'Fundal height is measured from the pubic symphysis to '
+                  'the top of the uterine fundus using a flexible, '
+                  'non-stretch tape measure. From around 24 weeks of '
+                  'gestation, the measurement in centimetres should '
+                  'approximately match the number of weeks of pregnancy, '
+                  'within a margin of two to three centimetres.\n\n'
+                  'Leopold\'s maneuvers are performed alongside fundal '
+                  'height measurement to assess fetal lie, presentation, '
+                  'and position. Begin with the first maneuver: palpate '
+                  'the fundus with both hands to determine which fetal '
+                  'part occupies the top of the uterus.\n\n'
+                  'Document any discrepancy between fundal height and '
+                  'gestational age, as this may indicate intrauterine '
+                  'growth restriction, polyhydramnios, or an incorrect '
+                  'estimated due date, and should prompt further '
+                  'clinical assessment.',
+            ),
             Lesson(id: 'l8', title: "Leopold's 4 Maneuvers Clinical", durationMinutes: 20, status: LessonStatus.completed),
             Lesson(id: 'l9', title: 'Clinical Verification Quiz', durationMinutes: 10, status: LessonStatus.notStarted),
           ]),

@@ -8,24 +8,35 @@ class Lesson {
     required this.status,
     this.progressPercent = 0,
     this.isAudio = false,
+    this.content = '',
   });
-    Lesson copyWith({LessonStatus? status, double? progressPercent}) {
+
+  final String id;
+  final String title;
+  final int durationMinutes;
+  final LessonStatus status;
+  final double progressPercent;
+  final bool isAudio;
+
+  /// The readable/listenable lesson content.
+  final String content;
+
+  Lesson copyWith({
+    LessonStatus? status,
+    double? progressPercent,
+    bool? isAudio,
+    String? content,
+  }) {
     return Lesson(
       id: id,
       title: title,
       durationMinutes: durationMinutes,
       status: status ?? this.status,
       progressPercent: progressPercent ?? this.progressPercent,
-      isAudio: isAudio,
+      isAudio: isAudio ?? this.isAudio,
+      content: content ?? this.content,
     );
   }
-
-  final String id;
-  final String title;
-  final int durationMinutes;
-  final LessonStatus status;
-  final double progressPercent; // meaningful when status == inProgress
-  final bool isAudio;
 }
 
 class CurriculumModule {
@@ -35,7 +46,8 @@ class CurriculumModule {
     required this.title,
     required this.lessons,
   });
-    CurriculumModule replacingLesson(Lesson updated) {
+
+  CurriculumModule replacingLesson(Lesson updated) {
     return CurriculumModule(
       id: id,
       number: number,
@@ -72,7 +84,8 @@ class Chapter {
     required this.title,
     required this.modules,
   });
-    Chapter replacingModule(CurriculumModule updated) {
+
+  Chapter replacingModule(CurriculumModule updated) {
     return Chapter(
       id: id,
       number: number,
@@ -98,7 +111,8 @@ class CurriculumProgress {
     required this.cpdHoursAccrued,
     required this.cpdHoursRequired,
   });
-    /// Returns a new CurriculumProgress with the given lesson's status
+
+  /// Returns a new CurriculumProgress with the given lesson's status
   /// (and, for in-progress, its percent) updated. Used to apply progress
   /// changes locally without re-fetching everything from the repository.
   CurriculumProgress updatingLesson(
@@ -140,12 +154,13 @@ class CurriculumProgress {
   int get completedModules =>
       chapters.fold(0, (s, c) => s + c.completedModules);
 
+  int get totalLessons =>
+      chapters.fold(0, (s, c) => s + c.modules.fold(0, (s2, m) => s2 + m.totalLessons));
+  int get completedLessons => chapters.fold(
+      0, (s, c) => s + c.modules.fold(0, (s2, m) => s2 + m.completedLessons));
+
   double get curriculumPercent {
-    final totalLessons =
-        chapters.fold(0, (s, c) => s + c.modules.fold(0, (s2, m) => s2 + m.totalLessons));
-    final doneLessons = chapters.fold(
-        0, (s, c) => s + c.modules.fold(0, (s2, m) => s2 + m.completedLessons));
-    return totalLessons == 0 ? 0 : (doneLessons / totalLessons * 100);
+    return totalLessons == 0 ? 0 : (completedLessons / totalLessons * 100);
   }
 
   /// Index of the first chapter that isn't fully completed, or -1 if every

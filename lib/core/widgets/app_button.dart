@@ -10,14 +10,36 @@ class AppButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.variant = AppButtonVariant.primary,
+    this.icon,
+    this.trailingIcon,
+    this.shape,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
+  final Widget? icon;
+  final Widget? trailingIcon;
+  final OutlinedBorder? shape;
 
   @override
   Widget build(BuildContext context) {
+    Widget content = Text(label);
+    if (trailingIcon != null || icon != null) {
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (icon != null) ...[icon!, const SizedBox(width: 8)],
+          Text(label),
+          if (trailingIcon != null) ...[const SizedBox(width: 8), trailingIcon!],
+        ],
+      );
+    }
+
+    final defaultShape =
+        shape ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
+
     switch (variant) {
       // Normal button: dark olive green, filled
       case AppButtonVariant.primary:
@@ -28,8 +50,9 @@ class AppButton extends StatelessWidget {
             foregroundColor: Colors.white,
             textStyle: AppTypography.button,
             minimumSize: const Size(0, 48),
+            shape: defaultShape,
           ),
-          child: Text(label),
+          child: content,
         );
 
       // For actions like Back: olive outline, never turns red
@@ -41,8 +64,9 @@ class AppButton extends StatelessWidget {
             side: const BorderSide(color: AppColors.primary),
             textStyle: AppTypography.button,
             minimumSize: const Size(0, 48),
+            shape: defaultShape,
           ),
-          child: Text(label),
+          child: content,
         );
 
       // For Cancel, Delete, Logout: neutral at rest, red on hover or press
@@ -52,6 +76,7 @@ class AppButton extends StatelessWidget {
           style: ButtonStyle(
             minimumSize: WidgetStateProperty.all(const Size(0, 48)),
             textStyle: WidgetStateProperty.all(AppTypography.button),
+            shape: WidgetStateProperty.all(defaultShape),
             foregroundColor: WidgetStateProperty.resolveWith((states) {
               final active = states.contains(WidgetState.hovered) ||
                   states.contains(WidgetState.pressed);
@@ -65,7 +90,7 @@ class AppButton extends StatelessWidget {
               );
             }),
           ),
-          child: Text(label),
+          child: content,
         );
     }
   }

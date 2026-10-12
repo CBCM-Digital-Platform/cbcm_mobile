@@ -16,14 +16,18 @@ class ResetPasswordPage extends ConsumerStatefulWidget {
 }
 
 class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
+  final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmController = TextEditingController();
+  bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   _Strength _strength = _Strength.empty;
+  String? _errorText;
 
   @override
   void dispose() {
+    _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -43,6 +47,42 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         _strength = _Strength.strong;
       }
     });
+  }
+
+  void _submit() {
+    setState(() => _errorText = null);
+
+    if (_currentPasswordController.text.isEmpty) {
+      setState(() => _errorText = 'Enter your current password.');
+      return;
+    }
+    // TODO(backend integration): verify current password via
+    // ApiEndpoints.changePassword / AuthRepository once the backend is live.
+    // Mocked for now: any non-empty current password is accepted.
+
+    if (_newPasswordController.text.length < 12 ||
+        _strength == _Strength.weak ||
+        _strength == _Strength.fair) {
+      setState(() => _errorText =
+          'New password must be at least 12 characters and include '
+          'uppercase, lowercase, numbers, and symbols.');
+      return;
+    }
+
+    if (_newPasswordController.text != _confirmController.text) {
+      setState(() => _errorText = 'New passwords do not match.');
+      return;
+    }
+
+    if (_newPasswordController.text == _currentPasswordController.text) {
+      setState(() => _errorText = 'New password must be different from your current password.');
+      return;
+    }
+
+    final role = ref.read(currentRoleProvider);
+    context.go(role?.name == 'mentee'
+        ? AppRoutes.menteeDashboard
+        : AppRoutes.mentorDashboard);
   }
 
   @override
@@ -100,6 +140,25 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const Text('Current Password',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _currentPasswordController,
+                          obscureText: _obscureCurrent,
+                          decoration: InputDecoration(
+                            hintText: 'Enter your current password',
+                            prefixIcon: const Icon(Icons.lock_person_outlined),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscureCurrent
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined),
+                              onPressed: () =>
+                                  setState(() => _obscureCurrent = !_obscureCurrent),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         const Text('New Password',
                             style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
@@ -140,20 +199,17 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                             ),
                           ),
                         ),
+                        if (_errorText != null) ...[
+                          const SizedBox(height: 12),
+                          Text(_errorText!,
+                              style: const TextStyle(color: Colors.red, fontSize: 13)),
+                        ],
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           child: AppButton(
                             label: 'Update Password',
-                            onPressed: () {
-                              // TODO(Week 2 integration): call
-                              // ApiEndpoints.resetPassword via AuthRepository
-                              // once the backend endpoint is live.
-                              final role = ref.read(currentRoleProvider);
-                              context.go(role?.name == 'mentee'
-                                  ? AppRoutes.menteeDashboard
-                                  : AppRoutes.mentorDashboard);
-                            },
+                            onPressed: _submit,
                           ),
                         ),
                       ],

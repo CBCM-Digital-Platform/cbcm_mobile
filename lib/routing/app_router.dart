@@ -11,10 +11,13 @@ import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/reset_password_page.dart';
 import '../features/mentee/dashboard/presentation/mentee_dashboard_page.dart';
 import '../features/mentee/learning/domain/curriculum.dart';
+import '../features/mentee/learning/presentation/lesson_reader_page.dart';
 import '../features/mentee/learning/presentation/module_detail_page.dart';
 import '../features/mentee/presentation/mentee_shell.dart';
 import '../features/mentor/dashboard/presentation/mentor_dashboard_page.dart';
+import '../features/mentor/presentation/mentor_shell.dart';
 import 'app_routes.dart';
+import '../features/home/welcome_page.dart';
 
 // Temporary dev page, removed once Mentee/Mentor dashboards are real
 class HomePage extends ConsumerWidget {
@@ -129,9 +132,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
+           GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) => const HomePage(),
+        builder: (context, state) => const WelcomePage(),
       ),
       GoRoute(
         path: AppRoutes.login,
@@ -141,16 +144,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.resetPassword,
         builder: (context, state) => const ResetPasswordPage(),
       ),
-      GoRoute(
+                GoRoute(
         path: AppRoutes.moduleDetail,
         builder: (context, state) {
-          final module = state.extra as CurriculumModule;
+          final module = state.extra;
+          if (module is! CurriculumModule) {
+            // Data lost (e.g. page reload) — send back instead of crashing
+            return const _RedirectToMenteeHome();
+          }
           return ModuleDetailPage(module: module);
         },
       ),
       GoRoute(
-        path: AppRoutes.mentorDashboard,
-        builder: (context, state) => const MentorDashboardPage(),
+        path: AppRoutes.lessonReader,
+        builder: (context, state) {
+          final lesson = state.extra;
+          if (lesson is! Lesson) {
+            return const _RedirectToMenteeHome();
+          }
+          return LessonReaderPage(lesson: lesson);
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -172,9 +185,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
-              path: AppRoutes.menteeClinical,
+              path: AppRoutes.menteeMessages,
               builder: (context, state) =>
-                  const PlaceholderPage(title: 'Clinical'),
+                  const PlaceholderPage(title: 'Message'),
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -193,6 +206,58 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ]),
         ],
       ),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MentorShell(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.mentorDashboard,
+              builder: (context, state) => const MentorDashboardPage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.mentorMentees,
+              builder: (context, state) =>
+                  const PlaceholderPage(title: 'Mentees'),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.mentorSessions,
+              builder: (context, state) =>
+                  const PlaceholderPage(title: 'Sessions'),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.mentorMessages,
+              builder: (context, state) =>
+                  const PlaceholderPage(title: 'Message'),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.mentorAskAi,
+              builder: (context, state) =>
+                  const PlaceholderPage(title: 'Ask AI'),
+            ),
+          ]),
+        ],
+      ),
     ],
   );
 });
+class _RedirectToMenteeHome extends StatelessWidget {
+  const _RedirectToMenteeHome();
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.go(AppRoutes.menteeDashboard);
+    });
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
+}
