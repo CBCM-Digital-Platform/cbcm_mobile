@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../routing/app_routes.dart';
 import '../../learning/domain/curriculum.dart';
 import '../../learning/presentation/curriculum_controller.dart';
+import '../../../auth/presentation/profile_menu_button.dart';
 
 final _userNameProvider = FutureProvider.autoDispose((ref) async {
   final storage = ref.watch(secureStorageProvider);
@@ -46,22 +47,19 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
           },
         ),
         actions: [
+          // Icon 1: Notifications
           IconButton(
-            icon: const Icon(Icons.notifications_none, color: Color(0xFF1F2937)),
-            onPressed: () {},
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E4620),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, size: 18, color: Colors.white),
+            icon: const Icon(
+              Icons.notifications_none,
+              color: Color(0xFF1F2937),
             ),
+            onPressed: () {
+              // TODO: Open notifications
+            },
           ),
+
+          // Icon 2: Profile menu
+          const ProfileMenuButton(),
         ],
       ),
       body: curriculum.when(

@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/stat_card.dart';
 import '../data/mentor_repository_provider.dart';
 import '../domain/mentor_summary.dart';
+import '../../../auth/presentation/profile_menu_button.dart';
 
 final _userNameProvider = FutureProvider.autoDispose((ref) async {
   final storage = ref.watch(secureStorageProvider);
@@ -43,10 +44,7 @@ class MentorDashboardPage extends ConsumerWidget {
         foregroundColor: AppColors.primary,
         actions: [
           IconButton(icon: const Icon(Icons.notifications_none), onPressed: () {}),
-          const Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: CircleAvatar(radius: 16, child: Icon(Icons.person, size: 18)),
-          ),
+                   const ProfileMenuButton(),
         ],
       ),
       body: summary.when(

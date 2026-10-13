@@ -6,6 +6,9 @@ import '../../../core/widgets/app_button.dart';
 import '../../../routing/app_routes.dart';
 import 'login_controller.dart';
 
+
+
+
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -32,12 +35,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     ref.listen(loginControllerProvider, (previous, next) {
       if (next is LoginSuccess) {
+        if (next.user.mustChangePassword) {
+          context.go(AppRoutes.resetPassword);
+          return;
+        }
         final target = next.user.role.name == 'mentee'
             ? AppRoutes.menteeDashboard
             : AppRoutes.mentorDashboard;
         context.go(target);
       }
     });
+ 
 
     final isLoading = state is LoginLoading;
 

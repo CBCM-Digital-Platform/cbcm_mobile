@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/network/api_response.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../routing/app_routes.dart';
+import '../data/auth_repository_provider.dart';
 import 'current_role_provider.dart';
 
 enum _Strength { empty, weak, fair, strong }
@@ -22,6 +24,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _isSubmitting = false;
   _Strength _strength = _Strength.empty;
   String? _errorText;
 
@@ -49,16 +52,13 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     setState(() => _errorText = null);
 
     if (_currentPasswordController.text.isEmpty) {
       setState(() => _errorText = 'Enter your current password.');
       return;
     }
-    // TODO(backend integration): verify current password via
-    // ApiEndpoints.changePassword / AuthRepository once the backend is live.
-    // Mocked for now: any non-empty current password is accepted.
 
     if (_newPasswordController.text.length < 12 ||
         _strength == _Strength.weak ||
@@ -75,14 +75,43 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     }
 
     if (_newPasswordController.text == _currentPasswordController.text) {
-      setState(() => _errorText = 'New password must be different from your current password.');
+      setState(() => _errorText =
+          'New password must be different from your current password.');
       return;
     }
 
-    final role = ref.read(currentRoleProvider);
-    context.go(role?.name == 'mentee'
-        ? AppRoutes.menteeDashboard
-        : AppRoutes.mentorDashboard);
+    setState(() => _isSubmitting = true);
+    try {
+      await ref.read(authRepositoryProvider).changePassword(
+            currentPassword: _currentPasswordController.text,
+            newPassword: _newPasswordController.text,
+          );
+      if (!mounted) return;
+      final role = ref.read(currentRoleProvider);
+      context.go(role?.name == 'mentee'
+          ? AppRoutes.menteeDashboard
+          : AppRoutes.mentorDashboard);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      // Password was changed but the quiet sign-in afterwards failed:
+      // send the user to the login screen to sign in with the new one.
+      if (e.error.code == 'REAUTH_REQUIRED') {
+        await ref.read(currentRoleProvider.notifier).logout();
+        if (!mounted) return;
+        context.go(AppRoutes.login);
+        return;
+      }
+      setState(() {
+        _errorText = e.error.message;
+        _isSubmitting = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = 'Something went wrong. Please try again.';
+        _isSubmitting = false;
+      });
+    }
   }
 
   @override
@@ -153,8 +182,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                               icon: Icon(_obscureCurrent
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined),
-                              onPressed: () =>
-                                  setState(() => _obscureCurrent = !_obscureCurrent),
+                              onPressed: () => setState(
+                                  () => _obscureCurrent = !_obscureCurrent),
                             ),
                           ),
                         ),
@@ -202,14 +231,17 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         if (_errorText != null) ...[
                           const SizedBox(height: 12),
                           Text(_errorText!,
-                              style: const TextStyle(color: Colors.red, fontSize: 13)),
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 13)),
                         ],
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           child: AppButton(
-                            label: 'Update Password',
-                            onPressed: _submit,
+                            label: _isSubmitting
+                                ? 'Updating...'
+                                : 'Update Password',
+                            onPressed: _isSubmitting ? null : _submit,
                           ),
                         ),
                       ],

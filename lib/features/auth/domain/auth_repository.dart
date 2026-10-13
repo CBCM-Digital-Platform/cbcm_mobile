@@ -5,4 +5,12 @@ abstract class AuthRepository {
   Future<User> login({required String email, required String password});
 
   Future<void> logout();
+
+  /// Changes the signed-in user's password and clears their
+  /// "must change password" flag. Throws ApiException if the current
+  /// password is wrong.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }

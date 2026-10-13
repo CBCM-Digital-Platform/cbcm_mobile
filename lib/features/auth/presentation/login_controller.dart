@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/storage/secure_storage_provider.dart';
@@ -5,6 +6,11 @@ import '../../../core/storage/storage_keys.dart';
 import '../data/auth_repository_provider.dart';
 import '../domain/user.dart';
 import 'current_role_provider.dart';
+
+/// TEMPORARY dev switch: lets the shared test accounts reach the dashboard
+/// without changing their shared password. Only works in debug builds.
+/// Set to false (or delete) once you have your own test accounts.
+const _devSkipForcedReset = true;
 
 sealed class LoginState {
   const LoginState();
@@ -36,12 +42,23 @@ class LoginController extends Notifier<LoginState> {
     state = const LoginLoading();
     try {
       final repo = ref.read(authRepositoryProvider);
-      final user = await repo.login(email: email, password: password);
+      var user = await repo.login(email: email, password: password);
 
-      // MOCKED tokens: the mock repository doesn't return real ones yet.
+      debugPrint('[LOGIN] role=${user.role.name} '
+          'mustChangePassword=${user.mustChangePassword}');
+
+      if (kDebugMode && _devSkipForcedReset && user.mustChangePassword) {
+        user = User(
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          mustChangePassword: false,
+        );
+      }
+
+      // Tokens are saved by the repository itself (real or mock).
       final storage = ref.read(secureStorageProvider);
-      await storage.write(StorageKeys.accessToken, 'mock-access-token');
-      await storage.write(StorageKeys.refreshToken, 'mock-refresh-token');
       await storage.write(StorageKeys.userRole, user.role.name);
       await storage.write(StorageKeys.userId, user.id);
       await storage.write(StorageKeys.userName, user.name);
@@ -50,8 +67,11 @@ class LoginController extends Notifier<LoginState> {
 
       state = LoginSuccess(user);
     } on ApiException catch (e) {
+      debugPrint('[LOGIN] ApiException code=${e.error.code} message=${e.error.message}');
       state = LoginError(e.error.message);
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[LOGIN] Unexpected error: $e');
+      debugPrint('[LOGIN] $stack');
       state = const LoginError('Something went wrong. Please try again.');
     }
   }
