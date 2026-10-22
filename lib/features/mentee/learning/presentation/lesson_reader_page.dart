@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+import '../../../../core/audio/read_aloud_controller.dart';
+import '../../../../core/storage/secure_storage_provider.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/read_aloud_bar.dart';
 import '../domain/curriculum.dart';
 import 'curriculum_controller.dart';
 
@@ -15,36 +17,28 @@ class LessonReaderPage extends ConsumerStatefulWidget {
 }
 
 class _LessonReaderPageState extends ConsumerState<LessonReaderPage> {
-  final FlutterTts _tts = FlutterTts();
-  bool _isSpeaking = false;
+  late final ReadAloudController _reader;
 
   @override
   void initState() {
     super.initState();
-    _tts.setCompletionHandler(() => setState(() => _isSpeaking = false));
+    _reader = ReadAloudController(
+      loadText: () async => widget.lesson.content,
+      storage: ref.read(secureStorageProvider),
+      resourceKey: 'lesson:${widget.lesson.id}',
+    );
   }
 
   @override
   void dispose() {
-    _tts.stop();
+    _reader.dispose();
     super.dispose();
-  }
-
-  Future<void> _toggleSpeech() async {
-    if (_isSpeaking) {
-      await _tts.stop();
-      setState(() => _isSpeaking = false);
-    } else {
-      setState(() => _isSpeaking = true);
-      await _tts.speak(widget.lesson.content.isEmpty
-          ? widget.lesson.title
-          : widget.lesson.content);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final lesson = widget.lesson;
+    final completed = lesson.status == LessonStatus.completed;
 
     return Scaffold(
       appBar: AppBar(title: Text(lesson.title)),
@@ -56,18 +50,32 @@ class _LessonReaderPageState extends ConsumerState<LessonReaderPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Icon(Icons.schedule, size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text('${lesson.durationMinutes} min',
-                          style: TextStyle(color: Colors.grey.shade600)),
-                      if (lesson.isAudio) ...[
-                        const SizedBox(width: 12),
-                        Icon(Icons.headphones, size: 16, color: Colors.grey.shade600),
-                        const SizedBox(width: 4),
-                        Text('Audio available', style: TextStyle(color: Colors.grey.shade600)),
-                      ],
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.schedule,
+                              size: 16, color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text('${lesson.durationMinutes} min',
+                              style: TextStyle(color: Colors.grey.shade600)),
+                        ],
+                      ),
+                      if (lesson.isAudio)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.headphones,
+                                size: 16, color: Colors.grey.shade600),
+                            const SizedBox(width: 4),
+                            Text('Audio available',
+                                style: TextStyle(color: Colors.grey.shade600)),
+                          ],
+                        ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -81,27 +89,18 @@ class _LessonReaderPageState extends ConsumerState<LessonReaderPage> {
               ),
             ),
           ),
-          SafeArea(
-            minimum: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                IconButton.filled(
-                  iconSize: 28,
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(56, 56),
-                  ),
-                  icon: Icon(_isSpeaking ? Icons.stop : Icons.volume_up),
-                  onPressed: lesson.content.isEmpty ? null : _toggleSpeech,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+          ReadAloudBar(reader: _reader, safeBottom: false),
+          Container(
+            color: Colors.white,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                child: SizedBox(
+                  width: double.infinity,
                   child: AppButton(
-                    label: lesson.status == LessonStatus.completed
-                        ? 'Completed'
-                        : 'Mark as Complete',
-                    onPressed: lesson.status == LessonStatus.completed
+                    label: completed ? 'Completed' : 'Mark as Complete',
+                    onPressed: completed
                         ? null
                         : () {
                             ref
@@ -111,7 +110,7 @@ class _LessonReaderPageState extends ConsumerState<LessonReaderPage> {
                           },
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/api_response.dart';
+import '../../../core/storage/secure_storage_provider.dart';
+import '../../../core/storage/storage_keys.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../routing/app_routes.dart';
 import '../data/auth_repository_provider.dart';
 import 'current_role_provider.dart';
+import 'pending_password_provider.dart';
 
 enum _Strength { empty, weak, fair, strong }
 
@@ -55,7 +58,13 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   Future<void> _submit() async {
     setState(() => _errorText = null);
 
-    if (_currentPasswordController.text.isEmpty) {
+    // Normally the temporary password typed at login is remembered in memory.
+    // If the app was closed and reopened on this screen, it isn't, so the
+    // current-password field is shown and used instead.
+    final remembered = ref.read(pendingPasswordProvider);
+    final current = remembered ?? _currentPasswordController.text;
+
+    if (current.isEmpty) {
       setState(() => _errorText = 'Enter your current password.');
       return;
     }
@@ -74,18 +83,25 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
       return;
     }
 
-    if (_newPasswordController.text == _currentPasswordController.text) {
+    if (_newPasswordController.text == current) {
       setState(() => _errorText =
-          'New password must be different from your current password.');
+          'New password must be different from your temporary password.');
       return;
     }
 
+    final repo = ref.read(authRepositoryProvider);
+    final storage = ref.read(secureStorageProvider);
+    final pending = ref.read(pendingPasswordProvider.notifier);
+    final roleNotifier = ref.read(currentRoleProvider.notifier);
+
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(authRepositoryProvider).changePassword(
-            currentPassword: _currentPasswordController.text,
-            newPassword: _newPasswordController.text,
-          );
+      await repo.changePassword(
+        currentPassword: current,
+        newPassword: _newPasswordController.text,
+      );
+      await storage.write(StorageKeys.mustChangePassword, 'false');
+      pending.clear();
       if (!mounted) return;
       final role = ref.read(currentRoleProvider);
       context.go(role?.name == 'mentee'
@@ -93,10 +109,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
           : AppRoutes.mentorDashboard);
     } on ApiException catch (e) {
       if (!mounted) return;
-      // Password was changed but the quiet sign-in afterwards failed:
-      // send the user to the login screen to sign in with the new one.
+      // The password was changed but signing in again failed: send the user
+      // to the login screen to sign in with the new password.
       if (e.error.code == 'REAUTH_REQUIRED') {
-        await ref.read(currentRoleProvider.notifier).logout();
+        await roleNotifier.logout();
         if (!mounted) return;
         context.go(AppRoutes.login);
         return;
@@ -116,6 +132,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final hasRemembered = ref.watch(pendingPasswordProvider) != null;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -169,25 +187,28 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Current Password',
-                            style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _currentPasswordController,
-                          obscureText: _obscureCurrent,
-                          decoration: InputDecoration(
-                            hintText: 'Enter your current password',
-                            prefixIcon: const Icon(Icons.lock_person_outlined),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscureCurrent
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined),
-                              onPressed: () => setState(
-                                  () => _obscureCurrent = !_obscureCurrent),
+                        if (!hasRemembered) ...[
+                          const Text('Current Password',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _currentPasswordController,
+                            obscureText: _obscureCurrent,
+                            decoration: InputDecoration(
+                              hintText: 'Enter your temporary password',
+                              prefixIcon:
+                                  const Icon(Icons.lock_person_outlined),
+                              suffixIcon: IconButton(
+                                icon: Icon(_obscureCurrent
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined),
+                                onPressed: () => setState(
+                                    () => _obscureCurrent = !_obscureCurrent),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
+                          const SizedBox(height: 20),
+                        ],
                         const Text('New Password',
                             style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
@@ -249,7 +270,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => context.go(AppRoutes.login),
+                    onPressed: () async {
+                      await ref.read(currentRoleProvider.notifier).logout();
+                      if (context.mounted) context.go(AppRoutes.login);
+                    },
                     child: const Text('Cancel'),
                   ),
                 ],

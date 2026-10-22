@@ -13,6 +13,23 @@ class App extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       title: 'CBCM Mobile',
       routerConfig: ref.watch(appRouterProvider),
+      builder: (context, child) {
+        // Stops layouts breaking when the phone's font size is set very
+        // large, and stops screens stretching edge to edge on tablets.
+        return MediaQuery.withClampedTextScaling(
+          minScaleFactor: 0.9,
+          maxScaleFactor: 1.15,
+          child: ColoredBox(
+            color: AppColors.background,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        );
+      },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,

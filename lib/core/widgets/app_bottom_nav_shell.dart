@@ -40,12 +40,13 @@ class AppBottomNavShell extends StatelessWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 for (var i = 0; i < items.length; i++)
-                  _buildNavItem(context, i, items[i]),
+                  // Every tab gets an equal share of the width, so any
+                  // number of tabs fits on any phone.
+                  Expanded(child: _buildNavItem(context, i, items[i])),
               ],
             ),
           ),
@@ -56,38 +57,48 @@ class AppBottomNavShell extends StatelessWidget {
 
   Widget _buildNavItem(BuildContext context, int index, NavItem item) {
     final isSelected = index == navigationShell.currentIndex;
+    final color = isSelected ? AppColors.primary : const Color(0xFF6B7280);
 
-    return InkWell(
-      onTap: () => navigationShell.goBranch(
-        index,
-        initialLocation: index == navigationShell.currentIndex,
-      ),
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFFD22B) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: InkWell(
+        onTap: () => navigationShell.goBranch(
+          index,
+          initialLocation: index == navigationShell.currentIndex,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSelected ? item.selectedIcon : item.icon,
-              color: isSelected ? AppColors.primary : const Color(0xFF6B7280),
-              size: 22,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              item.label,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? AppColors.primary : const Color(0xFF6B7280),
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFFFD22B) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? item.selectedIcon : item.icon,
+                color: color,
+                size: 22,
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              // Shrinks the text slightly instead of overflowing when a
+              // label is long or the phone is narrow.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  item.label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

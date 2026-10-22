@@ -9,6 +9,7 @@ import '../../../../routing/app_routes.dart';
 import '../../learning/domain/curriculum.dart';
 import '../../learning/presentation/curriculum_controller.dart';
 import '../../../auth/presentation/profile_menu_button.dart';
+import '../../../notifications/presentation/notification_bell.dart';
 
 final _userNameProvider = FutureProvider.autoDispose((ref) async {
   final storage = ref.watch(secureStorageProvider);
@@ -47,16 +48,7 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
           },
         ),
         actions: [
-          // Icon 1: Notifications
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_none,
-              color: Color(0xFF1F2937),
-            ),
-            onPressed: () {
-              // TODO: Open notifications
-            },
-          ),
+          const NotificationBell(color: Color(0xFF1F2937)),
 
           // Icon 2: Profile menu
           const ProfileMenuButton(),
@@ -393,12 +385,7 @@ class _WelcomeHeroCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  onPressed: () {
-                    final next = curriculum.nextLesson;
-                    if (next != null) {
-                      context.push(AppRoutes.lessonReader, extra: next);
-                    }
-                  },
+                  onPressed: () => context.go(AppRoutes.menteeLearn),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
@@ -587,17 +574,23 @@ class _MetricCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF4B5563),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF4B5563),
+                  ),
                 ),
               ),
-              ?topIcon,
+              if (topIcon != null) ...[
+                const SizedBox(width: 8),
+                topIcon!,
+              ],
             ],
           ),
           const SizedBox(height: 8),

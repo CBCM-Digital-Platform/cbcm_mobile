@@ -1,0 +1,377 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/security/offline_access.dart';
+import '../../../../core/theme/colors.dart';
+import '../../../../core/widgets/app_card.dart';
+import '../data/resource_downloads.dart';
+import '../data/resource_providers.dart';
+import '../domain/learning_resource.dart';
+import 'protected_pdf_page.dart';
+
+Future<void> _openResource(
+  BuildContext context,
+  WidgetRef ref,
+  LearningResource resource,
+  String path,
+) async {
+  final allowed = await ref.read(offlineAccessProvider.notifier).ensureAccess();
+  if (!context.mounted) return;
+
+  if (!allowed) {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Verify your access'),
+        content: Text(
+          'Your offline access period (${OfflineAccess.maxOfflineDays} days) '
+          'has ended. Connect to the internet and try again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    return;
+  }
+
+  if (resource.type == ResourceType.pdf) {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            ProtectedPdfPage(title: resource.title, encryptedPath: path),
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Playing audio and video inside the app is coming next.'),
+      ),
+    );
+  }
+}
+
+class ResourcesPage extends ConsumerStatefulWidget {
+  const ResourcesPage({super.key});
+
+  @override
+  ConsumerState<ResourcesPage> createState() => _ResourcesPageState();
+}
+
+class _ResourcesPageState extends ConsumerState<ResourcesPage> {
+  String _query = '';
+  ResourceType? _type; // null = any type
+  bool _starredOnly = false;
+  bool _downloadedOnly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Opening the library while online re-verifies access, which restarts
+    // the offline period. Fails quietly when offline.
+    Future.microtask(
+      () => ref.read(offlineAccessProvider.notifier).verifyNow(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(resourcesControllerProvider);
+    final downloads = ref.watch(resourceDownloadsProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        title: const Text('Resource Library'),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _AccessBanner(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                onChanged: (v) => setState(() => _query = v),
+                decoration: InputDecoration(
+                  hintText: 'Search resources...',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.grey.shade200,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Row(
+                children: [
+                  _chip(
+                    'All',
+                    _type == null && !_starredOnly && !_downloadedOnly,
+                    () => setState(() {
+                      _type = null;
+                      _starredOnly = false;
+                      _downloadedOnly = false;
+                    }),
+                  ),
+                  _chip('Downloaded', _downloadedOnly,
+                      () => setState(() => _downloadedOnly = !_downloadedOnly)),
+                  _chip('Starred', _starredOnly,
+                      () => setState(() => _starredOnly = !_starredOnly)),
+                  _chip('PDF', _type == ResourceType.pdf,
+                      () => setState(() => _type = ResourceType.pdf)),
+                  _chip('Video', _type == ResourceType.video,
+                      () => setState(() => _type = ResourceType.video)),
+                  _chip('Audio', _type == ResourceType.audio,
+                      () => setState(() => _type = ResourceType.audio)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: async.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
+                  child: TextButton(
+                    onPressed: () => ref.invalidate(resourcesControllerProvider),
+                    child: const Text('Could not load resources. Try again'),
+                  ),
+                ),
+                data: (all) {
+                  final q = _query.trim().toLowerCase();
+                  final shown = all.where((r) {
+                    if (_starredOnly && !r.isStarred) return false;
+                    if (_downloadedOnly &&
+                        downloads[r.id]?.status != DownloadStatus.downloaded) {
+                      return false;
+                    }
+                    if (_type != null && r.type != _type) return false;
+                    if (q.isEmpty) return true;
+                    return r.title.toLowerCase().contains(q) ||
+                        r.category.toLowerCase().contains(q);
+                  }).toList();
+
+                  if (shown.isEmpty) {
+                    return const Center(child: Text('No resources found.'));
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                    itemCount: shown.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) => _ResourceTile(resource: shown[i]),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(String label, bool selected, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        selectedColor: AppColors.primary,
+        backgroundColor: Colors.grey.shade200,
+        labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87),
+        side: BorderSide.none,
+        onSelected: (_) => onTap(),
+      ),
+    );
+  }
+}
+
+/// Shows how long downloaded files stay available offline.
+class _AccessBanner extends ConsumerWidget {
+  const _AccessBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(offlineAccessProvider);
+    if (status.level == AccessLevel.checking) return const SizedBox.shrink();
+
+    final expired = status.level == AccessLevel.expired;
+    final color = expired ? Colors.red : AppColors.primary;
+    final days = status.daysLeft;
+    final text = expired
+        ? 'Offline access has expired. Connect to the internet to verify '
+            'your access.'
+        : 'Offline access: $days ${days == 1 ? 'day' : 'days'} left';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              expired ? Icons.lock_clock : Icons.verified_user_outlined,
+              size: 18,
+              color: color,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(text, style: const TextStyle(fontSize: 12))),
+            if (expired)
+              TextButton(
+                onPressed: () =>
+                    ref.read(offlineAccessProvider.notifier).verifyNow(),
+                child: const Text('Verify'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResourceTile extends ConsumerWidget {
+  const _ResourceTile({required this.resource});
+  final LearningResource resource;
+
+  IconData get _icon => switch (resource.type) {
+        ResourceType.pdf => Icons.picture_as_pdf_outlined,
+        ResourceType.video => Icons.play_circle_outline,
+        ResourceType.audio => Icons.headphones_outlined,
+        ResourceType.other => Icons.insert_drive_file_outlined,
+      };
+
+  void _start(BuildContext context, WidgetRef ref) {
+    if (!resource.isDownloadable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This file is not available for download yet.'),
+        ),
+      );
+      return;
+    }
+    ref.read(resourceDownloadsProvider.notifier).download(resource);
+  }
+
+  Widget _action(BuildContext context, WidgetRef ref, DownloadInfo info) {
+    switch (info.status) {
+      case DownloadStatus.downloading:
+        return SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                value: info.progress > 0 ? info.progress : null,
+              ),
+            ),
+          ),
+        );
+      case DownloadStatus.downloaded:
+        return PopupMenuButton<String>(
+          tooltip: 'Downloaded',
+          icon: const Icon(Icons.check_circle, color: Colors.green),
+          onSelected: (value) {
+            if (value == 'open') {
+              _openResource(context, ref, resource, info.path!);
+            } else {
+              ref.read(resourceDownloadsProvider.notifier).remove(resource.id);
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'open', child: Text('Open')),
+            PopupMenuItem(value: 'remove', child: Text('Remove download')),
+          ],
+        );
+      case DownloadStatus.failed:
+        return IconButton(
+          tooltip: 'Retry',
+          onPressed: () => _start(context, ref),
+          icon: const Icon(Icons.refresh, color: Colors.red),
+        );
+      case DownloadStatus.none:
+        return IconButton(
+          tooltip: 'Download',
+          onPressed: () => _start(context, ref),
+          icon: const Icon(Icons.download_outlined),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final info =
+        ref.watch(resourceDownloadsProvider)[resource.id] ?? const DownloadInfo();
+    final downloaded = info.status == DownloadStatus.downloaded;
+
+    return GestureDetector(
+      onTap: downloaded
+          ? () => _openResource(context, ref, resource, info.path!)
+          : null,
+      child: AppCard(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(_icon, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(resource.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${resource.category} • ${resource.sizeLabel}'
+                    '${downloaded ? ' • Available offline' : ''}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  if (info.status == DownloadStatus.failed)
+                    Text(info.error ?? 'Download failed.',
+                        style: const TextStyle(fontSize: 12, color: Colors.red)),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Star',
+              onPressed: () => ref
+                  .read(resourcesControllerProvider.notifier)
+                  .toggleStar(resource.id),
+              icon: Icon(
+                resource.isStarred ? Icons.star : Icons.star_border,
+                color: resource.isStarred ? AppColors.pageIndicator : Colors.grey,
+              ),
+            ),
+            _action(context, ref, info),
+          ],
+        ),
+      ),
+    );
+  }
+}

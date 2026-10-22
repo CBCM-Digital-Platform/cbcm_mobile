@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/security/offline_access.dart';
 import '../../../core/storage/secure_storage_provider.dart';
 import '../../../core/storage/storage_keys.dart';
 import '../../../core/theme/colors.dart';
@@ -30,6 +31,17 @@ class ProfileMenuButton extends ConsumerWidget {
               ),
             );
           }
+        } else if (value == 'age') {
+          await ref
+              .read(offlineAccessProvider.notifier)
+              .debugAge(const Duration(days: 8));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Offline access aged by 8 days.'),
+              ),
+            );
+          }
         }
       },
       itemBuilder: (_) => [
@@ -43,7 +55,7 @@ class ProfileMenuButton extends ConsumerWidget {
             ],
           ),
         ),
-        // DEBUG ONLY: remove once refresh is verified.
+        // DEBUG ONLY: remove once these are verified.
         if (kDebugMode)
           const PopupMenuItem(
             value: 'expire',
@@ -52,6 +64,17 @@ class ProfileMenuButton extends ConsumerWidget {
                 Icon(Icons.bug_report_outlined, size: 20),
                 SizedBox(width: 12),
                 Text('Debug: expire token'),
+              ],
+            ),
+          ),
+        if (kDebugMode)
+          const PopupMenuItem(
+            value: 'age',
+            child: Row(
+              children: [
+                Icon(Icons.bug_report_outlined, size: 20),
+                SizedBox(width: 12),
+                Text('Debug: age offline access 8 days'),
               ],
             ),
           ),

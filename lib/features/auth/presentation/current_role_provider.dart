@@ -1,4 +1,6 @@
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/storage/secure_storage_provider.dart';
 import '../../../core/storage/storage_keys.dart';
 import '../domain/user_role.dart';
@@ -15,6 +17,7 @@ class CurrentRoleNotifier extends Notifier<UserRole?> {
   Future<void> _restoreSession() async {
     final storage = ref.read(secureStorageProvider);
     final savedRole = await storage.read(StorageKeys.userRole);
+
     if (savedRole == UserRole.mentee.name) {
       state = UserRole.mentee;
     } else if (savedRole == UserRole.mentor.name) {
@@ -26,13 +29,17 @@ class CurrentRoleNotifier extends Notifier<UserRole?> {
 
   Future<void> logout() async {
     final storage = ref.read(secureStorageProvider);
+
     await storage.delete(StorageKeys.accessToken);
     await storage.delete(StorageKeys.refreshToken);
     await storage.delete(StorageKeys.userRole);
+    await storage.delete(StorageKeys.mustChangePassword);
+
     state = null;
   }
 }
 
 final currentRoleProvider =
-    NotifierProvider<CurrentRoleNotifier, UserRole?>(CurrentRoleNotifier.new);
-    
+    NotifierProvider<CurrentRoleNotifier, UserRole?>(
+  CurrentRoleNotifier.new,
+);

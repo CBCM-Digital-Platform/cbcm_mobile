@@ -18,6 +18,14 @@ import '../features/mentor/dashboard/presentation/mentor_dashboard_page.dart';
 import '../features/mentor/presentation/mentor_shell.dart';
 import 'app_routes.dart';
 import '../features/home/welcome_page.dart';
+import '../core/storage/secure_storage_provider.dart';
+import '../core/storage/storage_keys.dart';
+import '../features/messaging/presentation/conversations_page.dart';
+import '../features/mentee/resources/presentation/resources_page.dart';
+import '../features/mentee/learning/presentation/learn_page.dart';
+import '../features/mentor/mentees/presentation/mentees_page.dart';
+import '../features/mentee/mentorship/presentation/my_mentor_page.dart';
+
 
 // Temporary dev page, removed once Mentee/Mentor dashboards are real
 class HomePage extends ConsumerWidget {
@@ -115,9 +123,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.home,
     refreshListenable: refresh,
-    redirect: (context, state) {
+        redirect: (context, state) async {
       final role = ref.read(currentRoleProvider);
       final path = state.matchedLocation;
+
+      // A signed-in user who still has a temporary password can only
+      // reach the Reset Password screen.
+      if (role != null && path != AppRoutes.resetPassword) {
+        final mustChange = await ref
+            .read(secureStorageProvider)
+            .read(StorageKeys.mustChangePassword);
+        if (mustChange == 'true') return AppRoutes.resetPassword;
+      }
 
       if (path.startsWith('/mentee') && role != UserRole.mentee) {
         return role == UserRole.mentor
@@ -165,6 +182,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return LessonReaderPage(lesson: lesson);
         },
       ),
+      GoRoute(
+        path: AppRoutes.menteeResources,
+        builder: (context, state) => const ResourcesPage(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MenteeShell(navigationShell: navigationShell);
@@ -180,14 +201,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.menteeLearn,
               builder: (context, state) =>
-                  const PlaceholderPage(title: 'Learn'),
+                  const LearnPage(),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.menteeMessages,
               builder: (context, state) =>
-                  const PlaceholderPage(title: 'Message'),
+                  const ConversationsPage(),
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -201,7 +222,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.menteeMentorChat,
               builder: (context, state) =>
-                  const PlaceholderPage(title: 'Mentor'),
+                  const MyMentorPage(),
             ),
           ]),
         ],
@@ -221,7 +242,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.mentorMentees,
               builder: (context, state) =>
-                  const PlaceholderPage(title: 'Mentees'),
+                  const MenteesPage(),
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -235,7 +256,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.mentorMessages,
               builder: (context, state) =>
-                  const PlaceholderPage(title: 'Message'),
+                  const ConversationsPage(),
             ),
           ]),
           StatefulShellBranch(routes: [

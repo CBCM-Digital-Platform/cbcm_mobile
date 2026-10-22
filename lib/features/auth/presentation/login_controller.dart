@@ -6,11 +6,13 @@ import '../../../core/storage/storage_keys.dart';
 import '../data/auth_repository_provider.dart';
 import '../domain/user.dart';
 import 'current_role_provider.dart';
+import 'pending_password_provider.dart';
+import '../../../core/security/offline_access.dart';
 
-/// TEMPORARY dev switch: lets the shared test accounts reach the dashboard
-/// without changing their shared password. Only works in debug builds.
-/// Set to false (or delete) once you have your own test accounts.
-const _devSkipForcedReset = true;
+/// TEMPORARY dev switch: lets accounts that still have a temporary password
+/// reach the dashboard without changing it. Only works in debug builds.
+/// Keep this false now that you have your own test accounts.
+const _devSkipForcedReset = false;
 
 sealed class LoginState {
   const LoginState();
@@ -44,8 +46,8 @@ class LoginController extends Notifier<LoginState> {
       final repo = ref.read(authRepositoryProvider);
       var user = await repo.login(email: email, password: password);
 
-      debugPrint('[LOGIN] role=${user.role.name} '
-          'mustChangePassword=${user.mustChangePassword}');
+      debugPrint('[LOGIN] role=${user.role.name} id=${user.id} '
+          'name=${user.name} mustChangePassword=${user.mustChangePassword}');
 
       if (kDebugMode && _devSkipForcedReset && user.mustChangePassword) {
         user = User(
@@ -57,13 +59,24 @@ class LoginController extends Notifier<LoginState> {
         );
       }
 
+      // Remember the temporary password in memory only, for the forced change.
+      final pending = ref.read(pendingPasswordProvider.notifier);
+      if (user.mustChangePassword) {
+        pending.set(password);
+      } else {
+        pending.clear();
+      }
+
       // Tokens are saved by the repository itself (real or mock).
       final storage = ref.read(secureStorageProvider);
       await storage.write(StorageKeys.userRole, user.role.name);
       await storage.write(StorageKeys.userId, user.id);
       await storage.write(StorageKeys.userName, user.name);
+      await storage.write(
+          StorageKeys.mustChangePassword, user.mustChangePassword.toString());
 
       ref.read(currentRoleProvider.notifier).setRole(user.role);
+            await ref.read(offlineAccessProvider.notifier).markVerified();
 
       state = LoginSuccess(user);
     } on ApiException catch (e) {
