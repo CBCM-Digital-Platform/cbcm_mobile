@@ -23,4 +23,27 @@ class ApiEndpoints {
 
   // Knowledge score (current score, shown inline in assessments)
   static const knowledgeTrend = '/progress/knowledge-trend';
+  static const progressSummary = '/progress/summary';
+
+  // Assignments
+  static const assignments = '/assignments';
+  static String mentorAssignments(int mentorId) => '/assignments/mentors/$mentorId/assignments';
+  static String menteeAssignments(int menteeId) => '/assignments/mentees/$menteeId/assignments';
+
+  // Mentorship Cycles
+  static const mentorshipCycles = '/mentorship-cycles';
+  static String cycleDetails(int cycleId) => '/mentorship-cycles/$cycleId';
+
+  // Clinical Sessions
+  static const sessions = '/sessions';
+  static const sessionAvailableTimes = '/sessions/available-times';
+  static String sessionDetails(int id) => '/sessions/$id';
+  static String sessionStatus(int id) => '/sessions/$id/status';
+  static String sessionNotes(int id) => '/sessions/$id/notes';
+  static String sessionJoinToken(int id) => '/sessions/$id/join-token';
+  static String sessionParticipantJoin(int id) => '/sessions/$id/participant-join';
+
+  // Notifications
+  static const notifications = '/notifications';
+  static const notificationsUnreadCount = '/notifications/unread-count';
 }

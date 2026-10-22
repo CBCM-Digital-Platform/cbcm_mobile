@@ -14,14 +14,27 @@ Future<void> openChatWith(
   MessageUser user,
 ) async {
   try {
-    final conversation = await ref
-        .read(messagingRepositoryProvider)
-        .createDirectConversation(user.id);
+    final existingList = ref.read(conversationsProvider).value ?? [];
+    final existing = existingList.cast<Conversation?>().firstWhere(
+          (c) => c != null && c.type == 'direct' && c.participants.any((p) => p.id == user.id),
+          orElse: () => null,
+        );
+
+    final int convId;
+    if (existing != null && existing.id > 0) {
+      convId = existing.id;
+    } else {
+      final conversation = await ref
+          .read(messagingRepositoryProvider)
+          .createDirectConversation(user.id);
+      convId = conversation.id;
+    }
+
     ref.invalidate(conversationsProvider);
     if (!context.mounted) return;
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
-        builder: (_) => ChatPage(conversationId: conversation.id),
+        builder: (_) => ChatPage(conversationId: convId),
       ),
     );
     ref.invalidate(conversationsProvider);

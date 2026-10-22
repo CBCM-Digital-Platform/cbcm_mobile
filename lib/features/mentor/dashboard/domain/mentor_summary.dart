@@ -7,6 +7,9 @@ class ScheduleItem {
     required this.subtitle,
     required this.action,
     this.isGroup = false,
+    this.sessionId,
+    this.mode,
+    this.scheduledStartTime,
   });
 
   final String time;
@@ -14,6 +17,9 @@ class ScheduleItem {
   final String subtitle;
   final SessionAction action;
   final bool isGroup;
+  final int? sessionId;
+  final String? mode;
+  final DateTime? scheduledStartTime;
 }
 
 class ActivityItem {
@@ -39,6 +45,7 @@ class MentorSummary {
     required this.logbooksPending,
     required this.todaySchedule,
     required this.recentActivity,
+    this.activeCycleName,
   });
 
   final int totalMentees;
@@ -46,4 +53,5 @@ class MentorSummary {
   final int logbooksPending;
   final List<ScheduleItem> todaySchedule;
   final List<ActivityItem> recentActivity;
+  final String? activeCycleName;
 }

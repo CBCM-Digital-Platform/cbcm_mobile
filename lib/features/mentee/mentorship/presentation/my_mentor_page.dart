@@ -7,6 +7,7 @@ import '../../../messaging/data/temporary_contacts.dart';
 import '../../../messaging/domain/message_models.dart';
 import '../../../messaging/presentation/contact_picker.dart';
 import '../../../messaging/presentation/messaging_widgets.dart';
+import '../../../mentor/sessions/presentation/schedule_session_sheet.dart';
 
 class MyMentorPage extends ConsumerWidget {
   const MyMentorPage({super.key});
@@ -22,9 +23,13 @@ class MyMentorPage extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(contactsApiProvider);
+            ref.invalidate(assignedMentorProvider);
             await ref
                 .read(contactsApiProvider.future)
                 .catchError((_) => <MessageUser>[]);
+            await ref
+                .read(assignedMentorProvider.future)
+                .catchError((_) => null);
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -89,12 +94,26 @@ class MyMentorPage extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        SizedBox(
-                          width: double.infinity,
-                          child: AppButton(
-                            label: 'Message',
-                            onPressed: () => openChatWith(context, ref, m),
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: AppButton(
+                                label: 'Schedule',
+                                onPressed: () => ScheduleSessionSheet.show(
+                                  context,
+                                  menteeName: m.fullName,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: AppButton(
+                                label: 'Message',
+                                variant: AppButtonVariant.secondary,
+                                onPressed: () => openChatWith(context, ref, m),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -31,8 +31,8 @@ class MessagingRepository {
 
   /// GET /messages/contacts: the people the signed-in user may message.
   Future<List<MessageUser>> listContacts() async {
-    final body = await _call(() => _dio.get('$_prefix/contacts'));
-    final data = body['data'];
+    final body = await _call(() => _getWithFallback('$_prefix/contacts'));
+    final data = body['data'] ?? body;
     final list = data is List
         ? data
         : (data is Map ? (data['contacts'] ?? data['items'] ?? data['users']) : null);
@@ -44,11 +44,11 @@ class MessagingRepository {
 
   /// GET /messages/conversations
   Future<List<Conversation>> listConversations() async {
-    final body = await _call(() => _dio.get('$_prefix/conversations'));
-    final data = body['data'];
+    final body = await _call(() => _getWithFallback('$_prefix/conversations'));
+    final data = body['data'] ?? body;
     final list = data is List
         ? data
-        : (data is Map ? (data['conversations'] ?? data['items']) : null);
+        : (data is Map ? (data['conversations'] ?? data['items'] ?? data['list']) : null);
     return (list is List ? list : const [])
         .whereType<Map>()
         .map((m) => Conversation.fromJson(Map<String, dynamic>.from(m)))
@@ -57,34 +57,41 @@ class MessagingRepository {
 
   /// GET /messages/conversations/{id}  (messages oldest first)
   Future<Conversation> getConversation(int id) async {
-    final body = await _call(() => _dio.get('$_prefix/conversations/$id'));
+    final body = await _call(() => _getWithFallback('$_prefix/conversations/$id'));
     return Conversation.fromJson(_dataMap(body, ['conversation']));
   }
 
   /// POST /messages/conversations  (returns the existing one if it exists)
-  /// ASSUMED body fields: confirm against Swagger.
   Future<Conversation> createDirectConversation(int otherUserId) async {
     final body = await _call(
-      () => _dio.post('$_prefix/conversations', data: {
-        'participantIds': [otherUserId],
-        'type': 'direct',
-      }),
+      () => _postWithFallback(
+        '$_prefix/conversations',
+        data: {
+          'participantIds': [otherUserId],
+          'participant_ids': [otherUserId],
+          'recipientId': otherUserId,
+          'recipient_id': otherUserId,
+          'type': 'direct',
+        },
+      ),
     );
     return Conversation.fromJson(_dataMap(body, ['conversation']));
   }
 
   /// POST /messages/conversations/{id}/messages
-  /// ASSUMED body fields: confirm against Swagger.
   Future<ChatMessage> sendMessage(
     int conversationId,
     String content, {
     int? attachmentFileId,
   }) async {
     final body = await _call(
-      () => _dio.post('$_prefix/conversations/$conversationId/messages', data: {
-        'content': content,
-        if (attachmentFileId != null) 'attachmentFileIds': [attachmentFileId],
-      }),
+      () => _postWithFallback(
+        '$_prefix/conversations/$conversationId/messages',
+        data: {
+          'content': content,
+          if (attachmentFileId != null) 'attachmentFileIds': [attachmentFileId],
+        },
+      ),
     );
     return ChatMessage.fromJson(_dataMap(body, ['message']));
   }
@@ -119,11 +126,35 @@ class MessagingRepository {
 
   // ---- helpers ----
 
+  Future<Response<dynamic>> _getWithFallback(String path) async {
+    try {
+      return await _dio.get(path);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404 && path.startsWith(_prefix)) {
+        final rawBase = _dio.options.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+        return await _dio.get('$rawBase$path');
+      }
+      rethrow;
+    }
+  }
+
+  Future<Response<dynamic>> _postWithFallback(String path, {dynamic data}) async {
+    try {
+      return await _dio.post(path, data: data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404 && path.startsWith(_prefix)) {
+        final rawBase = _dio.options.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+        return await _dio.post('$rawBase$path', data: data);
+      }
+      rethrow;
+    }
+  }
+
   Map<String, dynamic> _dataMap(
     Map<String, dynamic> body,
     List<String> wrapperKeys,
   ) {
-    final data = body['data'];
+    final data = body['data'] ?? body;
     if (data is! Map) {
       throw const MessagingException('Unexpected response from the server.');
     }

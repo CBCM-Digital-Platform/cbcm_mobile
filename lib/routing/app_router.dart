@@ -25,6 +25,7 @@ import '../features/mentee/resources/presentation/resources_page.dart';
 import '../features/mentee/learning/presentation/learn_page.dart';
 import '../features/mentor/mentees/presentation/mentees_page.dart';
 import '../features/mentee/mentorship/presentation/my_mentor_page.dart';
+import '../features/mentor/sessions/presentation/mentor_sessions_page.dart';
 
 
 // Temporary dev page, removed once Mentee/Mentor dashboards are real
@@ -249,7 +250,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.mentorSessions,
               builder: (context, state) =>
-                  const PlaceholderPage(title: 'Sessions'),
+                  const MentorSessionsPage(),
             ),
           ]),
           StatefulShellBranch(routes: [

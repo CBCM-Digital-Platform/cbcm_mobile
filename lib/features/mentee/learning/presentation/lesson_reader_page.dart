@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/audio/read_aloud_controller.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
-import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/read_aloud_bar.dart';
 import '../domain/curriculum.dart';

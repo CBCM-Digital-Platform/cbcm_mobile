@@ -10,6 +10,9 @@ import '../data/mentor_repository_provider.dart';
 import '../domain/mentor_summary.dart';
 import '../../../auth/presentation/profile_menu_button.dart';
 import '../../../notifications/presentation/notification_bell.dart';
+import '../../sessions/presentation/meeting_launcher.dart';
+import '../../../../routing/app_routes.dart';
+import 'package:go_router/go_router.dart';
 
 final _userNameProvider = FutureProvider.autoDispose((ref) async {
   final storage = ref.watch(secureStorageProvider);
@@ -60,6 +63,34 @@ class MentorDashboardPage extends ConsumerWidget {
               loading: () => Text('${_greeting()}...'),
               error: (error, _) => Text(_greeting()),
             ),
+            if (data.activeCycleName != null) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.loop_outlined, size: 14, color: AppColors.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Cycle: ${data.activeCycleName}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             StatCard(
               label: 'Total Mentees',
@@ -89,6 +120,14 @@ class MentorDashboardPage extends ConsumerWidget {
             const SizedBox(height: 24),
             Text("Today's Schedule", style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
+            if (data.todaySchedule.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No sessions scheduled for today.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              ),
             for (final item in data.todaySchedule) _ScheduleCard(item: item),
             const SizedBox(height: 24),
             Row(
@@ -114,12 +153,12 @@ class MentorDashboardPage extends ConsumerWidget {
   }
 }
 
-class _ScheduleCard extends StatelessWidget {
+class _ScheduleCard extends ConsumerWidget {
   const _ScheduleCard({required this.item});
   final ScheduleItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: AppCard(
@@ -151,14 +190,28 @@ class _ScheduleCard extends StatelessWidget {
             item.action == SessionAction.start
                 ? SizedBox(
                     width: double.infinity,
-                    child: AppButton(label: 'Start Session', onPressed: () {}),
+                    child: AppButton(
+                      label: 'Start Session (Video)',
+                      onPressed: () {
+                        final sId = item.sessionId ?? 101;
+                        launchJitsiMeeting(
+                          context: context,
+                          ref: ref,
+                          sessionId: sId,
+                          sessionTitle: item.title,
+                        );
+                      },
+                    ),
                   )
                 : SizedBox(
                     width: double.infinity,
                     child: AppButton(
-                        label: 'Details',
-                        variant: AppButtonVariant.secondary,
-                        onPressed: () {}),
+                      label: 'Details',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () {
+                        context.go(AppRoutes.mentorSessions);
+                      },
+                    ),
                   ),
           ],
         ),
