@@ -5,8 +5,8 @@ import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../routing/app_routes.dart';
 import 'login_controller.dart';
-
-
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -17,8 +17,10 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _emailController = TextEditingController(text: 'le@gmail.com');
-  final _passwordController = TextEditingController(text: 'Password_12345');
+  final _emailController = TextEditingController(
+      text: kDebugMode ? (dotenv.env['DEV_EMAIL'] ?? '') : '');
+  final _passwordController = TextEditingController(
+      text: kDebugMode ? (dotenv.env['DEV_PASSWORD'] ?? '') : '');
   bool _obscurePassword = true;
   bool _rememberMe = false;
 
@@ -126,7 +128,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               padding: EdgeInsets.zero,
                               minimumSize: const Size(0, 0),
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                          onPressed: () => context.go(AppRoutes.resetPassword),
+                          onPressed: () => ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(
+                            content: Text(
+                                'Password reset by email code is coming soon.'),
+                          )),
                           child: Text('Forgot credentials?',
                               style: TextStyle(color: AppColors.primary)),
                         ),

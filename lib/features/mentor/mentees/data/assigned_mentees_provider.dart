@@ -1,9 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/storage/secure_storage_provider.dart';
-import '../../../../core/storage/storage_keys.dart';
+import '../../../messaging/data/messaging_providers.dart';
 import '../../../messaging/data/temporary_contacts.dart';
 import '../../../messaging/domain/message_models.dart';
 
@@ -35,150 +36,91 @@ class AssignedMentee {
   final MessageUser? messageUser;
 }
 
+/// The signed-in mentor's active mentees, from
+/// GET /assignments/mentors/{id}/assignments. Names come from the contacts
+/// list, because an assignment only carries ids. Nothing is invented: a
+/// missing value stays empty or zero.
 final assignedMenteesProvider =
     FutureProvider.autoDispose<List<AssignedMentee>>((ref) async {
-  final storage = ref.watch(secureStorageProvider);
-  final mentorIdStr = await storage.read(StorageKeys.userId);
-  final mentorId = int.tryParse(mentorIdStr ?? '');
+  final mentorId = await ref.watch(currentUserIdProvider.future);
+  if (mentorId == null) return const [];
+
   final dio = ref.watch(dioProvider);
-  final contacts = ref.watch(contactsApiProvider).value ?? const <MessageUser>[];
 
-  if (mentorId != null) {
-    try {
-      dynamic rawData;
-      try {
-        final response = await dio.get(ApiEndpoints.mentorAssignments(mentorId));
-        rawData = response.data;
-      } catch (_) {}
+  // Start loading names while the assignments request is in flight.
+  final contactsFuture = ref
+      .watch(contactsApiProvider.future)
+      .catchError((_) => <MessageUser>[]);
 
-      List<dynamic> list = _extractList(rawData);
-      if (list.isEmpty) {
-        try {
-          final response = await dio.get(
-            ApiEndpoints.assignments,
-            queryParameters: {'mentor_id': mentorId},
-          );
-          rawData = response.data;
-          list = _extractList(rawData);
-        } catch (_) {}
-      }
-
-      if (rawData != null) {
-        final List<AssignedMentee> result = [];
-        for (var i = 0; i < list.length; i++) {
-          final item = list[i] is Map ? Map<String, dynamic>.from(list[i] as Map) : <String, dynamic>{};
-          final menteeMap = item['mentee'] is Map ? Map<String, dynamic>.from(item['mentee'] as Map) : <String, dynamic>{};
-          final facilityMap = item['facility'] is Map ? Map<String, dynamic>.from(item['facility'] as Map) : <String, dynamic>{};
-
-          final menteeId = (menteeMap['id'] as num?)?.toInt() ??
-              (item['mentee_id'] as num?)?.toInt() ??
-              (item['menteeId'] as num?)?.toInt() ??
-              (i + 10);
-          final assignmentId = (item['id'] as num?)?.toInt() ?? (i + 1);
-
-          final matchedContact = contacts.cast<MessageUser?>().firstWhere(
-                (c) => c?.id == menteeId,
-                orElse: () => null,
-              );
-
-          final name = (menteeMap['full_name'] ??
-                  menteeMap['fullName'] ??
-                  menteeMap['name'] ??
-                  item['mentee_name'] ??
-                  matchedContact?.fullName ??
-                  'Mentee #$menteeId')
-              .toString();
-
-          final email = (menteeMap['email'] ?? item['mentee_email'] ?? '').toString();
-          final facility = (facilityMap['name'] ?? item['facility_name'] ?? 'Labor & Delivery').toString();
-          final priorityScore = (item['priority_score'] as num?)?.toInt() ??
-              (menteeMap['competency'] as num?)?.toInt() ??
-              (i == 0 ? 78 : (i == 1 ? 45 : 62));
-
-          final messageUser = matchedContact ??
-              MessageUser(
-                id: menteeId,
-                fullName: name,
-                role: 'mentee',
-              );
-
-          result.add(
-            AssignedMentee(
-              id: menteeId,
-              assignmentId: assignmentId,
-              fullName: name,
-              email: email,
-              facility: facility,
-              level: menteeMap['level']?.toString() ?? (i % 2 == 0 ? 'Intermediate' : 'Novice'),
-              competencyPercentage: priorityScore,
-              pendingLogbooks: i == 0 ? 3 : 0,
-              needsReview: i == 0,
-              isOnline: i % 2 == 0,
-              messageUser: messageUser,
-            ),
-          );
-        }
-        return result;
-      }
-    } catch (e) {
-      debugPrint('[assignedMenteesProvider] Error fetching assignments: $e');
-    }
+  dynamic raw;
+  try {
+    raw = (await dio.get(ApiEndpoints.mentorAssignments(mentorId))).data;
+  } on DioException catch (e) {
+    throw apiExceptionFromDio(e);
   }
 
-  // Graceful fallback seeded from Figma screen 5 & contacts
-  return [
-    const AssignedMentee(
-      id: 10,
-      assignmentId: 1,
-      fullName: 'Emma Thompson',
-      email: 'emma.t@cbcm.org',
-      facility: 'Unit A',
-      level: 'Intermediate',
-      competencyPercentage: 78,
-      pendingLogbooks: 3,
-      needsReview: true,
-      isOnline: true,
-      messageUser: MessageUser(
-        id: 10,
-        fullName: 'Emma Thompson',
-        role: 'mentee',
+  final contacts = await contactsFuture;
+  final result = <AssignedMentee>[];
+
+  for (final item in _extractList(raw)) {
+    if (item is! Map) continue;
+    final a = Map<String, dynamic>.from(item);
+
+    // Only active assignments.
+    final status = a['status']?.toString();
+    if (status != null && status != 'assigned') continue;
+
+    final menteeMap = a['mentee'] is Map
+        ? Map<String, dynamic>.from(a['mentee'] as Map)
+        : const <String, dynamic>{};
+
+    final menteeId = (menteeMap['id'] as num?)?.toInt() ??
+        (a['mentee_id'] as num?)?.toInt() ??
+        (a['menteeId'] as num?)?.toInt();
+    if (menteeId == null) continue;
+
+    MessageUser? contact;
+    for (final c in contacts) {
+      if (c.id == menteeId) {
+        contact = c;
+        break;
+      }
+    }
+
+    var name = (menteeMap['full_name'] ??
+            menteeMap['fullName'] ??
+            menteeMap['name'] ??
+            a['mentee_name'] ??
+            contact?.fullName ??
+            '')
+        .toString()
+        .trim();
+    if (name.isEmpty || name == 'Unknown') name = 'Mentee #$menteeId';
+
+    final facilityMap = a['facility'] is Map ? a['facility'] as Map : null;
+    final facility =
+        (facilityMap?['name'] ?? a['facility_name'] ?? '').toString();
+
+    result.add(
+      AssignedMentee(
+        id: menteeId,
+        assignmentId: (a['id'] as num?)?.toInt() ?? 0,
+        fullName: name,
+        email: (contact?.email ?? menteeMap['email'] ?? '').toString(),
+        facility: facility,
+        level: '',
+        competencyPercentage: 0, // no data yet: comes from the progress API
+        pendingLogbooks: 0,
+        needsReview: false,
+        isOnline: false, // the server does not report presence
+        messageUser: contact ??
+            MessageUser(id: menteeId, fullName: name, role: 'mentee'),
       ),
-    ),
-    const AssignedMentee(
-      id: 11,
-      assignmentId: 2,
-      fullName: 'Marcus Johnson',
-      email: 'marcus.j@cbcm.org',
-      facility: 'Clinic North',
-      level: 'Novice',
-      competencyPercentage: 45,
-      pendingLogbooks: 0,
-      needsReview: false,
-      isOnline: false,
-      messageUser: MessageUser(
-        id: 11,
-        fullName: 'Marcus Johnson',
-        role: 'mentee',
-      ),
-    ),
-    const AssignedMentee(
-      id: 12,
-      assignmentId: 3,
-      fullName: 'Sarah Jenkins',
-      email: 'sarah.j@cbcm.org',
-      facility: 'Labor Ward',
-      level: 'Intermediate',
-      competencyPercentage: 82,
-      pendingLogbooks: 1,
-      needsReview: true,
-      isOnline: true,
-      messageUser: MessageUser(
-        id: 12,
-        fullName: 'Sarah Jenkins',
-        role: 'mentee',
-      ),
-    ),
-  ];
+    );
+  }
+
+  debugPrint('[MENTEES] ${result.length} active assignment(s)');
+  return result;
 });
 
 List<dynamic> _extractList(dynamic raw) {
@@ -188,14 +130,13 @@ List<dynamic> _extractList(dynamic raw) {
     final data = raw['data'] ?? raw;
     if (data is List) return data;
     if (data is Map) {
-      for (final key in ['items', 'assignments', 'cycles', 'sessions', 'contacts', 'conversations']) {
+      for (final key in ['items', 'assignments']) {
         if (data[key] is List) return data[key] as List;
       }
     }
-    for (final key in ['items', 'assignments', 'cycles', 'sessions', 'contacts', 'conversations']) {
+    for (final key in ['items', 'assignments']) {
       if (raw[key] is List) return raw[key] as List;
     }
   }
   return [];
 }
-

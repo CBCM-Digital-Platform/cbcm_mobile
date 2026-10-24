@@ -7,6 +7,8 @@ import '../../../messaging/data/temporary_contacts.dart';
 import '../../../messaging/domain/message_models.dart';
 import '../../../messaging/presentation/contact_picker.dart';
 import '../../../messaging/presentation/messaging_widgets.dart';
+import '../../../mentor/sessions/presentation/meeting_launcher.dart';
+import '../../../mentor/sessions/presentation/mentor_sessions_page.dart';
 import '../../../mentor/sessions/presentation/schedule_session_sheet.dart';
 
 class MyMentorPage extends ConsumerWidget {
@@ -14,8 +16,13 @@ class MyMentorPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mentors = ref.watch(mentorContactsProvider);
-    final loading = ref.watch(contactsApiProvider).isLoading;
+    final rawMentors = ref.watch(mentorContactsProvider);
+    final fallbackMentor = ref.watch(assignedMentorProvider).value;
+    final mentors = rawMentors.isNotEmpty
+        ? rawMentors
+        : (fallbackMentor != null ? [fallbackMentor] : const <MessageUser>[]);
+    final loading = ref.watch(contactsApiProvider).isLoading && mentors.isEmpty;
+    final sessionsAsync = ref.watch(menteeSessionsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -24,12 +31,16 @@ class MyMentorPage extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(contactsApiProvider);
             ref.invalidate(assignedMentorProvider);
+            ref.invalidate(menteeSessionsProvider);
             await ref
                 .read(contactsApiProvider.future)
                 .catchError((_) => <MessageUser>[]);
             await ref
                 .read(assignedMentorProvider.future)
                 .catchError((_) => null);
+            await ref
+                .read(menteeSessionsProvider.future)
+                .catchError((_) => []);
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -119,19 +130,67 @@ class MyMentorPage extends ConsumerWidget {
                     ),
                   ),
                 ),
-              const AppCard(
-                child: Row(
-                  children: [
-                    Icon(Icons.event_outlined, color: Colors.grey),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Your upcoming sessions with your mentor will appear here.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
+              const SizedBox(height: 12),
+              Text(
+                'Upcoming Sessions',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
                     ),
-                  ],
+              ),
+              const SizedBox(height: 8),
+              sessionsAsync.when(
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: CircularProgressIndicator(),
+                  ),
                 ),
+                error: (e, _) => AppCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.orange),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text('Could not load sessions.'),
+                      ),
+                      TextButton(
+                        onPressed: () => ref.invalidate(menteeSessionsProvider),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+                data: (sessions) {
+                  if (sessions.isEmpty) {
+                    return const AppCard(
+                      child: Row(
+                        children: [
+                          Icon(Icons.event_outlined, color: Colors.grey),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'No sessions scheduled yet. Use the "Schedule" button above to request a supervision session.',
+                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: [
+                      for (final s in sessions)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: SessionCard(
+                            session: s,
+                            isMenteeView: true,
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),

@@ -1,34 +1,64 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/network/api_response.dart';
+import '../../../../core/network/dio_error_mapper.dart';
 import '../../../../core/network/dio_provider.dart';
-import '../../../../core/storage/secure_storage_provider.dart';
-import '../../../../core/storage/storage_keys.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../auth/domain/user_role.dart';
+import '../../../auth/presentation/current_role_provider.dart';
+import '../../../messaging/data/messaging_providers.dart';
+import '../../../messaging/data/temporary_contacts.dart';
+import '../../../notifications/data/notifications_repository.dart';
 import '../data/sessions_repository_provider.dart';
+import '../domain/sessions_repository.dart';
+import 'mentor_sessions_page.dart';
 
+/// The signed-in user's active assignments: a mentor's mentees, or a
+/// mentee's mentor(s).
 final mentorAssignmentsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final storage = ref.watch(secureStorageProvider);
-  final mentorIdStr = await storage.read(StorageKeys.userId);
-  final mentorId = int.tryParse(mentorIdStr ?? '');
-  if (mentorId == null) return [];
-  final dio = ref.watch(dioProvider);
+  final role = ref.watch(currentRoleProvider);
+  final userId = await ref.watch(currentUserIdProvider.future);
+  if (role == null || userId == null) return const [];
+
+  final path = role == UserRole.mentor
+      ? ApiEndpoints.mentorAssignments(userId)
+      : ApiEndpoints.menteeAssignments(userId);
+
   try {
-    final response = await dio.get(ApiEndpoints.mentorAssignments(mentorId));
-    final data = response.data;
-    if (data is List) {
-      return data.whereType<Map<String, dynamic>>().toList();
+    final r = await ref.watch(dioProvider).get(path);
+    return _extractAssignmentList(r.data)
+        .whereType<Map>()
+        .map((m) => Map<String, dynamic>.from(m))
+        .where((a) {
+      final status = a['status']?.toString();
+      return status == null || status == 'assigned';
+    }).toList();
+  } on DioException catch (e) {
+    throw apiExceptionFromDio(e);
+  }
+});
+
+List<dynamic> _extractAssignmentList(dynamic raw) {
+  if (raw == null) return [];
+  if (raw is List) return raw;
+  if (raw is Map) {
+    final data = raw['data'] ?? raw;
+    if (data is List) return data;
+    if (data is Map) {
+      for (final key in ['items', 'assignments']) {
+        if (data[key] is List) return data[key] as List;
+      }
     }
-    if (data is Map && data['data'] is List) {
-      return (data['data'] as List).whereType<Map<String, dynamic>>().toList();
+    for (final key in ['items', 'assignments']) {
+      if (raw[key] is List) return raw[key] as List;
     }
-  } catch (e) {
-    debugPrint('[mentorAssignmentsProvider] Error: $e');
   }
   return [];
-});
+}
 
 class ScheduleSessionSheet extends ConsumerStatefulWidget {
   const ScheduleSessionSheet({
@@ -66,29 +96,21 @@ class ScheduleSessionSheet extends ConsumerStatefulWidget {
 }
 
 class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  String _selectedTime = '09:30 AM';
-  String _sessionMode = 'virtual'; // 'virtual' or 'in_person'
-  String _selectedTopic = '1:1 Mentoring';
-  int? _selectedAssignmentId;
-  final _notesController = TextEditingController();
-  bool _isSubmitting = false;
+  static const _durationMinutes = 45;
 
-  final List<String> _morningTimes = [
-    '09:00 AM',
-    '09:30 AM',
-    '10:00 AM',
-    '11:30 AM',
+  /// Shown only if the server's availability cannot be read.
+  static const _standardSlots = [
+    TimeSlot(hour: 9, minute: 0),
+    TimeSlot(hour: 9, minute: 30),
+    TimeSlot(hour: 10, minute: 0),
+    TimeSlot(hour: 11, minute: 30),
+    TimeSlot(hour: 13, minute: 30),
+    TimeSlot(hour: 14, minute: 0),
+    TimeSlot(hour: 14, minute: 30),
+    TimeSlot(hour: 16, minute: 0),
   ];
 
-  final List<String> _afternoonTimes = [
-    '01:30 PM',
-    '02:00 PM',
-    '02:30 PM',
-    '04:00 PM',
-  ];
-
-  final List<String> _topics = [
+  static const _topics = [
     '1:1 Mentoring',
     'Clinical Assessment',
     'Skills Review',
@@ -97,15 +119,134 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     'Postnatal Care Review',
   ];
 
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  TimeSlot? _selectedSlot;
+  String _sessionMode = 'virtual'; // 'virtual' or 'in_person'
+  String _selectedTopic = _topics.first;
+  int? _selectedAssignmentId;
+  final _notesController = TextEditingController();
+  bool _isSubmitting = false;
+
+  AvailableTimes? _times;
+  bool _loadingTimes = false;
+  int _requestId = 0;
+  String? _loadedKey;
+
   @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
   }
 
+  String _dateKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
+
+  int? _idOf(Map<String, dynamic> a) => (a['id'] as num?)?.toInt();
+
+  int? _effectiveAssignmentId(List<Map<String, dynamic>> assignments) {
+    final ids = <int>{
+      for (final a in assignments)
+        if (_idOf(a) != null) _idOf(a)!,
+    };
+    if (ids.isEmpty) return null;
+    if (_selectedAssignmentId != null && ids.contains(_selectedAssignmentId)) {
+      return _selectedAssignmentId;
+    }
+    if (widget.initialAssignmentId != null &&
+        ids.contains(widget.initialAssignmentId)) {
+      return widget.initialAssignmentId;
+    }
+    if (widget.initialMenteeId != null) {
+      for (final a in assignments) {
+        if ((a['mentee_id'] as num?)?.toInt() == widget.initialMenteeId) {
+          return _idOf(a);
+        }
+      }
+    }
+    return ids.first;
+  }
+
+  Future<void> _loadTimes(int assignmentId) async {
+    final request = ++_requestId;
+    setState(() {
+      _loadingTimes = true;
+      _times = null;
+      _selectedSlot = null;
+    });
+
+    final result = await ref.read(sessionsRepositoryProvider).getAvailableTimes(
+          assignmentId: assignmentId,
+          date: _selectedDate,
+          durationMinutes: _durationMinutes,
+        );
+
+    if (!mounted || request != _requestId) return; // a newer request won
+    setState(() {
+      _times = result;
+      _loadingTimes = false;
+    });
+  }
+
+  List<TimeSlot> _visibleSlots() {
+    final times = _times;
+    if (times == null) return const [];
+    final base = times.checked ? times.slots : _standardSlots;
+
+    final now = DateTime.now();
+    final isToday = _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+    final nowMinutes = now.hour * 60 + now.minute;
+
+    return [
+      for (final s in base)
+        if (!isToday || s.minutesOfDay > nowMinutes) s,
+    ];
+  }
+
+  String _partnerLabel(Map<String, dynamic> a, UserRole? role) {
+    final isMentor = role == UserRole.mentor;
+    final nested = a[isMentor ? 'mentee' : 'mentor'];
+    final id = (a[isMentor ? 'mentee_id' : 'mentor_id'] as num?)?.toInt();
+
+    if (nested is Map) {
+      final name = (nested['full_name'] ?? nested['fullName'] ?? nested['name'])
+          ?.toString();
+      if (name != null && name.isNotEmpty) return name;
+    }
+    if (id != null) {
+      for (final c in ref.read(contactsProvider)) {
+        if (c.id == id && c.fullName.isNotEmpty && c.fullName != 'Unknown') {
+          return c.fullName;
+        }
+      }
+    }
+    return '${isMentor ? 'Mentee' : 'Mentor'} #${id ?? '?'}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final role = ref.watch(currentRoleProvider);
+    ref.watch(contactsProvider); // rebuild when names arrive
+
+    final assignmentsAsync = ref.watch(mentorAssignmentsProvider);
+    final assignments =
+        assignmentsAsync.value ?? const <Map<String, dynamic>>[];
+    final effectiveId = _effectiveAssignmentId(assignments);
+
+    // Load the free times whenever the assignment or the date changes.
+    if (effectiveId != null) {
+      final key = '$effectiveId|${_dateKey(_selectedDate)}';
+      if (key != _loadedKey) {
+        _loadedKey = key;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadTimes(effectiveId);
+        });
+      }
+    }
+
+    final canSubmit =
+        effectiveId != null && _selectedSlot != null && !_isSubmitting;
 
     return Container(
       decoration: const BoxDecoration(
@@ -120,7 +261,6 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle
           Center(
             child: Container(
               width: 40,
@@ -132,28 +272,27 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Header
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Schedule Session',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                  ),
-                  Text(
-                    widget.initialMenteeName != null
-                        ? 'With ${widget.initialMenteeName}'
-                        : 'Select date and time for clinical supervision',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Schedule Session',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                    ),
+                    Text(
+                      widget.initialMenteeName != null
+                          ? 'With ${widget.initialMenteeName}'
+                          : 'Choose a date and a free time',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    ),
+                  ],
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close),
@@ -162,55 +301,12 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
             ],
           ),
           const SizedBox(height: 16),
-
           Expanded(
             child: ListView(
               children: [
-                // 0. Mentee Selection (if multiple assignments exist)
-                ref.watch(mentorAssignmentsProvider).when(
-                      data: (assignments) {
-                        if (assignments.isEmpty) return const SizedBox.shrink();
-                        _selectedAssignmentId ??=
-                            widget.initialAssignmentId ?? (assignments.first['id'] as int?);
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader(Icons.person_outline, 'Select Mentee'),
-                            const SizedBox(height: 8),
-                            DropdownButtonFormField<int>(
-                              value: _selectedAssignmentId,
-                              decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                              ),
-                              items: assignments.map((a) {
-                                final id = a['id'] as int? ?? 1;
-                                final mentee = a['mentee'] as Map? ?? {};
-                                final name = (mentee['full_name'] ?? mentee['name'] ?? 'Mentee #$id').toString();
-                                return DropdownMenuItem<int>(
-                                  value: id,
-                                  child: Text(name),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) setState(() => _selectedAssignmentId = val);
-                              },
-                            ),
-                            const SizedBox(height: 20),
-                          ],
-                        );
-                      },
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
-
-                // 1. Date selection
-                _buildSectionHeader(Icons.calendar_month_outlined, 'Select Date'),
+                _buildAssignmentSection(assignmentsAsync, assignments,
+                    effectiveId, role),
+                _header(Icons.calendar_month_outlined, 'Select Date'),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: _pickDate,
@@ -224,12 +320,13 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
                       color: Colors.grey.shade50,
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          _formatDate(_selectedDate),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 15),
+                        Expanded(
+                          child: Text(
+                            _formatDate(_selectedDate),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 15),
+                          ),
                         ),
                         Icon(Icons.edit_calendar, color: AppColors.primary),
                       ],
@@ -237,120 +334,67 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // 2. Available times
-                _buildSectionHeader(Icons.access_time_outlined, 'Available Times'),
+                _header(Icons.access_time_outlined, 'Available Times'),
                 const SizedBox(height: 8),
-                Text('Morning',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _morningTimes
-                      .map((t) => _buildTimeChip(t, _selectedTime == t))
-                      .toList(),
-                ),
-                const SizedBox(height: 12),
-                Text('Afternoon',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _afternoonTimes
-                      .map((t) => _buildTimeChip(t, _selectedTime == t))
-                      .toList(),
-                ),
+                _buildTimes(effectiveId),
                 const SizedBox(height: 20),
-
-                // 3. Session Type (In-person vs Virtual)
-                _buildSectionHeader(Icons.videocam_outlined, 'Session Type'),
+                _header(Icons.videocam_outlined, 'Session Type'),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildModeOption(
-                        title: 'Virtual (Jitsi)',
+                      child: _modeOption(
+                        title: 'Virtual',
                         icon: Icons.video_call_outlined,
-                        isSelected: _sessionMode == 'virtual',
+                        selected: _sessionMode == 'virtual',
                         onTap: () => setState(() => _sessionMode = 'virtual'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildModeOption(
+                      child: _modeOption(
                         title: 'In-Person',
                         icon: Icons.person_pin_circle_outlined,
-                        isSelected: _sessionMode == 'in_person',
+                        selected: _sessionMode == 'in_person',
                         onTap: () => setState(() => _sessionMode = 'in_person'),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // 4. Topic / Competency
-                _buildSectionHeader(Icons.assignment_outlined, 'Session Topic / Competency'),
+                _header(Icons.assignment_outlined, 'Session Topic'),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedTopic,
-                  decoration: InputDecoration(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  items: _topics
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedTopic = val);
+                  initialValue: _selectedTopic,
+                  isExpanded: true,
+                  decoration: _fieldDecoration(),
+                  items: [
+                    for (final t in _topics)
+                      DropdownMenuItem(value: t, child: Text(t)),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setState(() => _selectedTopic = v);
                   },
                 ),
                 const SizedBox(height: 20),
-
-                // 5. Notes
-                _buildSectionHeader(Icons.notes_outlined, 'Clinical Notes & Preparation'),
+                _header(Icons.notes_outlined, 'Preparation Notes'),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _notesController,
                   maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText:
-                        'Briefly describe what you would like to focus on or review...',
-                    hintStyle:
-                        TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                    contentPadding: const EdgeInsets.all(12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
+                  decoration: _fieldDecoration(
+                    hint: 'What would you like to focus on or review?',
                   ),
                 ),
                 const SizedBox(height: 24),
               ],
             ),
           ),
-
-          // Confirm button
           SizedBox(
             width: double.infinity,
             child: AppButton(
               label: _isSubmitting ? 'Scheduling...' : 'Confirm Schedule',
-              onPressed: _isSubmitting ? () {} : _submit,
+              onPressed: canSubmit ? _submit : null,
             ),
           ),
         ],
@@ -358,44 +402,199 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     );
   }
 
-  Widget _buildSectionHeader(IconData icon, String title) {
+  InputDecoration _fieldDecoration({String? hint}) => InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      );
+
+  Widget _buildAssignmentSection(
+    AsyncValue<List<Map<String, dynamic>>> async,
+    List<Map<String, dynamic>> assignments,
+    int? effectiveId,
+    UserRole? role,
+  ) {
+    if (async.isLoading && assignments.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(bottom: 20),
+        child: LinearProgressIndicator(),
+      );
+    }
+    if (async.hasError && assignments.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Text(
+          'Could not load your assignments. Close this and try again.',
+          style: TextStyle(color: Colors.red.shade700),
+        ),
+      );
+    }
+    if (assignments.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Text(
+          'No active mentor-mentee assignment was found, so a session '
+          'cannot be scheduled yet.',
+          style: TextStyle(color: Colors.orange.shade800),
+        ),
+      );
+    }
+    if (assignments.length == 1) return const SizedBox.shrink();
+
+    final isMentor = role == UserRole.mentor;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _header(Icons.person_outline, isMentor ? 'Select Mentee' : 'Select Mentor'),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          initialValue: effectiveId,
+          isExpanded: true,
+          decoration: _fieldDecoration(),
+          items: [
+            for (final a in assignments)
+              if (_idOf(a) != null)
+                DropdownMenuItem<int>(
+                  value: _idOf(a),
+                  child: Text(_partnerLabel(a, role),
+                      overflow: TextOverflow.ellipsis),
+                ),
+          ],
+          onChanged: (v) {
+            if (v != null) setState(() => _selectedAssignmentId = v);
+          },
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildTimes(int? effectiveId) {
+    if (effectiveId == null) {
+      return Text(
+        'Free times appear once an assignment is available.',
+        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+      );
+    }
+    if (_loadingTimes || _times == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+        ),
+      );
+    }
+
+    final slots = _visibleSlots();
+    final checked = _times!.checked;
+
+    if (slots.isEmpty) {
+      return Text(
+        'No free times on this day. Pick another date.',
+        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+      );
+    }
+
+    final morning = slots.where((s) => s.hour < 12).toList();
+    final afternoon = slots.where((s) => s.hour >= 12).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!checked)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              'Could not check availability. Standard times are shown, and '
+              'the server will confirm your choice.',
+              style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
+            ),
+          ),
+        if (morning.isNotEmpty) ...[
+          _smallLabel('Morning'),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [for (final s in morning) _timeChip(s)],
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (afternoon.isNotEmpty) ...[
+          _smallLabel('Afternoon'),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [for (final s in afternoon) _timeChip(s)],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _smallLabel(String text) => Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey.shade600,
+        ),
+      );
+
+  Widget _header(IconData icon, String title) {
     return Row(
       children: [
         Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildTimeChip(String time, bool isSelected) {
+  Widget _timeChip(TimeSlot slot) {
+    final selected = _selectedSlot == slot;
     return ChoiceChip(
-      label: Text(time),
-      selected: isSelected,
-      onSelected: (_) => setState(() => _selectedTime = time),
+      label: Text(slot.label),
+      selected: selected,
+      showCheckmark: false,
+      onSelected: (_) => setState(() => _selectedSlot = slot),
       selectedColor: AppColors.primary,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black87,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: selected ? Colors.white : Colors.black87,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12,
       ),
       backgroundColor: Colors.grey.shade100,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: isSelected ? AppColors.primary : Colors.grey.shade300,
+          color: selected ? AppColors.primary : Colors.grey.shade300,
         ),
       ),
     );
   }
 
-  Widget _buildModeOption({
+  Widget _modeOption({
     required String title,
     required IconData icon,
-    required bool isSelected,
+    required bool selected,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -406,28 +605,29 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+            color: selected ? AppColors.primary : Colors.grey.shade300,
+            width: selected ? 2 : 1,
           ),
-          color: isSelected
+          color: selected
               ? AppColors.primary.withValues(alpha: 0.08)
               : Colors.grey.shade50,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? AppColors.primary : Colors.grey.shade600,
-            ),
+            Icon(icon,
+                size: 18,
+                color: selected ? AppColors.primary : Colors.grey.shade600),
             const SizedBox(width: 6),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? AppColors.primary : Colors.black87,
+            Flexible(
+              child: Text(
+                title,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                  color: selected ? AppColors.primary : Colors.black87,
+                ),
               ),
             ),
           ],
@@ -443,9 +643,7 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 90)),
     );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
+    if (picked != null) setState(() => _selectedDate = picked);
   }
 
   String _formatDate(DateTime dt) {
@@ -456,40 +654,29 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
   }
 
-  (int, int) _parseTime(String time) {
-    try {
-      final parts = time.trim().split(' ');
-      final hm = parts[0].split(':');
-      var h = int.parse(hm[0]);
-      final m = int.parse(hm[1]);
-      final isPm = parts.length > 1 && parts[1].toUpperCase() == 'PM';
-      if (isPm && h < 12) h += 12;
-      if (!isPm && h == 12) h = 0;
-      return (h, m);
-    } catch (_) {
-      return (9, 30);
-    }
-  }
-
   Future<void> _submit() async {
+    final assignments =
+        ref.read(mentorAssignmentsProvider).value ?? const <Map<String, dynamic>>[];
+    final assignmentId = _effectiveAssignmentId(assignments);
+    final slot = _selectedSlot;
+    if (assignmentId == null || slot == null) return;
+
     setState(() => _isSubmitting = true);
 
-    final (hour, minute) = _parseTime(_selectedTime);
-    final scheduledDateTime = DateTime(
+    final start = DateTime(
       _selectedDate.year,
       _selectedDate.month,
       _selectedDate.day,
-      hour,
-      minute,
+      slot.hour,
+      slot.minute,
     ).toUtc();
 
-    final assignmentId = _selectedAssignmentId ?? widget.initialAssignmentId ?? 1;
-
-    final sessionPayload = <String, dynamic>{
+    // Only the fields documented for POST /sessions.
+    final payload = <String, dynamic>{
       'assignment_id': assignmentId,
       'mode': _sessionMode,
-      'scheduled_at': scheduledDateTime.toIso8601String(),
-      'duration_minutes': 45,
+      'scheduled_at': start.toIso8601String(),
+      'duration_minutes': _durationMinutes,
       'session_goals': _selectedTopic,
       if (_notesController.text.trim().isNotEmpty)
         'preparation_notes': _notesController.text.trim(),
@@ -497,31 +684,38 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     };
 
     try {
-      await ref.read(sessionsRepositoryProvider).createSession(sessionPayload);
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Session scheduled for ${_formatDate(_selectedDate)} at $_selectedTime!',
-            ),
-            backgroundColor: Colors.green,
+      await ref.read(sessionsRepositoryProvider).createSession(payload);
+      ref.invalidate(mentorSessionsProvider);
+      ref.invalidate(menteeSessionsProvider);
+      ref.invalidate(notificationsProvider);
+      ref.invalidate(unreadCountProvider);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Session scheduled for ${_formatDate(_selectedDate)} at ${slot.label}.',
           ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to schedule session: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+          backgroundColor: Colors.green,
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.error.message), backgroundColor: Colors.red),
+      );
+      // Often a scheduling conflict: refresh which times are still free.
+      _loadTimes(assignmentId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not schedule the session. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 }

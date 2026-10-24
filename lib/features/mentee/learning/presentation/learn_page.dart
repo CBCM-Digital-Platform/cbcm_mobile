@@ -283,34 +283,37 @@ class _ChapterCard extends StatelessWidget {
 
     return AppCard(
       padding: EdgeInsets.zero,
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          initiallyExpanded: startExpanded,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          title: Text(title,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ProgressBar(value: fraction),
-                const SizedBox(height: 4),
-                Text('$done of $total lessons',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-              ],
-            ),
-          ),
-          children: [
-            for (final m in chapter.modules)
-              ListTile(
-                dense: true,
-                title: Text('Module ${m.number}: ${m.title}'),
-                trailing: Text('${m.completedLessons}/${m.totalLessons}'),
-                onTap: () => context.push(AppRoutes.moduleDetail, extra: m),
+      child: Material(
+        color: Colors.transparent,
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            initiallyExpanded: startExpanded,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            title: Text(title,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ProgressBar(value: fraction),
+                  const SizedBox(height: 4),
+                  Text('$done of $total lessons',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                ],
               ),
-          ],
+            ),
+            children: [
+              for (final m in chapter.modules)
+                ListTile(
+                  dense: true,
+                  title: Text('Module ${m.number}: ${m.title}'),
+                  trailing: Text('${m.completedLessons}/${m.totalLessons}'),
+                  onTap: () => context.push(AppRoutes.moduleDetail, extra: m),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -3,195 +3,164 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../domain/mentor_repository.dart';
 import '../domain/mentor_summary.dart';
-import 'mock_mentor_repository.dart';
 
-/// Real backend implementation of [MentorRepository].
-/// Concurrently fetches assigned mentees, active sessions, and cycle details.
-/// Gracefully falls back to mock data if offline or if backend endpoints return an error.
+/// Real backend implementation of [MentorRepository]. Shows only what the
+/// server returns: no sample data is mixed in.
 class DioMentorRepository implements MentorRepository {
-  DioMentorRepository(this._dio, {MentorRepository? fallback})
-      : _fallback = fallback ?? MockMentorRepository();
+  DioMentorRepository(this._dio, {MentorRepository? fallback});
 
   final Dio _dio;
-  final MentorRepository _fallback;
 
   @override
   Future<MentorSummary> getDashboardSummary(String mentorId) async {
-    final parsedId = int.tryParse(mentorId);
-    if (parsedId == null) {
-      debugPrint('[DioMentorRepository] Invalid mentorId: $mentorId. Using fallback.');
-      return _fallback.getDashboardSummary(mentorId);
+    final id = int.tryParse(mentorId);
+    if (id == null) throw StateError('Not signed in as a mentor.');
+
+    final results = await Future.wait<dynamic>([
+      _get(ApiEndpoints.mentorAssignments(id)),
+      _get(ApiEndpoints.sessions, query: {'mentor_id': id, 'limit': 50}),
+      _get(ApiEndpoints.mentorshipCycles),
+    ]);
+    final assignmentsData = results[0];
+    final sessionsData = results[1];
+    final cyclesData = results[2];
+
+    if (assignmentsData == null && sessionsData == null && cyclesData == null) {
+      throw StateError('Could not reach the server.');
     }
 
-    try {
-      // Concurrently fetch assignments, active sessions, and cycle details
-      final results = await Future.wait([
-        _fetchAssignments(parsedId),
-        _dio.get(ApiEndpoints.sessions, queryParameters: {
-          'mentor_id': parsedId,
-          'status': 'scheduled',
-          'limit': 20,
-        }).then((r) => r.data).catchError((e) {
-          debugPrint('[DioMentorRepository] Failed to fetch scheduled sessions: $e');
-          return null;
-        }),
-        _dio.get(ApiEndpoints.sessions, queryParameters: {
-          'mentor_id': parsedId,
-          'status': 'in_progress',
-          'limit': 10,
-        }).then((r) => r.data).catchError((e) {
-          debugPrint('[DioMentorRepository] Failed to fetch in-progress sessions: $e');
-          return null;
-        }),
-        _dio.get(ApiEndpoints.mentorshipCycles).then((r) => r.data).catchError((e) {
-          debugPrint('[DioMentorRepository] Failed to fetch cycles: $e');
-          return null;
-        }),
-      ]);
+    // Mentees: active assignments only.
+    final assignments = _list(assignmentsData).whereType<Map>().where((a) {
+      final status = a['status']?.toString();
+      return status == null || status == 'assigned';
+    }).toList();
 
-      final assignmentsData = results[0];
-      final scheduledData = results[1];
-      final inProgressData = results[2];
-      final cyclesData = results[3];
+    final studentNames = <String>[];
+    for (final a in assignments) {
+      final m = a['mentee'] is Map ? a['mentee'] as Map : null;
+      final name =
+          (m?['full_name'] ?? m?['fullName'] ?? m?['name'] ?? a['mentee_name'])
+              ?.toString();
+      if (name != null && name.isNotEmpty) studentNames.add(name);
+    }
 
-      // If all network calls returned null (e.g. offline), use fallback
-      if (assignmentsData == null && scheduledData == null && inProgressData == null && cyclesData == null) {
-        return await _fallback.getDashboardSummary(mentorId);
-      }
+    // Sessions: active ones, and today's for the schedule.
+    final live = _list(sessionsData).whereType<Map>().where((s) {
+      final st = s['status']?.toString();
+      return st == 'scheduled' || st == 'in_progress';
+    }).toList();
 
-      // 1. Total Mentees
-      int totalMentees = 0;
-      bool assignmentsLoaded = false;
-      if (assignmentsData != null) {
-        assignmentsLoaded = true;
-        final list = _extractList(assignmentsData);
-        totalMentees = list.length;
-        if (assignmentsData is Map) {
-          final inner = assignmentsData['data'];
-          if (inner is Map && inner['total'] is num) {
-            totalMentees = (inner['total'] as num).toInt();
-          } else if (assignmentsData['total'] is num) {
-            totalMentees = (assignmentsData['total'] as num).toInt();
-          }
-        }
-      }
+    final now = DateTime.now();
+    final todaySchedule = <ScheduleItem>[];
+    for (final s in live) {
+      final rawStart =
+          s['scheduled_start_time'] ?? s['scheduled_at'] ?? s['scheduledAt'];
+      final start = DateTime.tryParse('${rawStart ?? ''}')?.toLocal();
+      if (start == null || !_sameDay(start, now)) continue;
 
-      // 2. Active Sessions count
-      final scheduledList = _extractList(scheduledData);
-      final inProgressList = _extractList(inProgressData);
-      final activeSessions = scheduledList.length + inProgressList.length;
+      final mode = (s['mode'] ?? 'virtual').toString();
+      final isVirtual = mode.toLowerCase() == 'virtual';
+      final mentee = s['mentee'] is Map ? s['mentee'] as Map : null;
+      final title = (mentee?['full_name'] ??
+              mentee?['fullName'] ??
+              mentee?['name'] ??
+              s['mentee_name'] ??
+              'Session')
+          .toString();
 
-      // 3. Mentorship Cycle
-      String? cycleName;
-      final cycles = _extractList(cyclesData);
-      if (cycles.isNotEmpty) {
-        final activeCycle = cycles.firstWhere(
-          (c) => c is Map && (c['status'] == 'active' || c['is_active'] == true),
-          orElse: () => cycles.first,
-        );
-        if (activeCycle is Map) {
-          cycleName = (activeCycle['name'] ?? activeCycle['title'] ?? activeCycle['cycle_name'])?.toString();
-        }
-      }
-
-      // 4. Today's Schedule items
-      final allSessions = [...inProgressList, ...scheduledList];
-      final List<ScheduleItem> todaySchedule = [];
-
-      for (final raw in allSessions) {
-        if (raw is! Map) continue;
-        final map = Map<String, dynamic>.from(raw);
-        final id = map['id'] as int?;
-        final mode = (map['mode'] ?? 'virtual').toString();
-        final isVirtual = mode.toLowerCase() == 'virtual';
-        final rawStartTime = map['scheduled_start_time']?.toString() ??
-                             map['scheduled_at']?.toString() ??
-                             map['scheduledAt']?.toString();
-        DateTime? startTime;
-        if (rawStartTime != null) {
-          startTime = DateTime.tryParse(rawStartTime);
-        }
-
-        final timeStr = startTime != null ? _formatTime(startTime) : 'Scheduled';
-
-        final menteeMap = map['mentee'] is Map ? map['mentee'] as Map : null;
-        final menteeName = menteeMap != null
-            ? (menteeMap['full_name'] ?? menteeMap['fullName'] ?? menteeMap['name'] ?? 'Mentee').toString()
-            : (map['session_goals'] ?? 'Mentorship Session').toString();
-
-        final subtitle = isVirtual
-            ? 'Virtual Session • Jitsi Meeting'
-            : (map['location'] ?? 'In-Person Clinical Visit').toString();
-
-        todaySchedule.add(
-          ScheduleItem(
-            sessionId: id,
-            mode: mode,
-            time: timeStr,
-            title: menteeName,
-            subtitle: subtitle,
-            scheduledStartTime: startTime,
-            action: isVirtual ? SessionAction.start : SessionAction.details,
-          ),
-        );
-      }
-
-      final fallbackSummary = await _fallback.getDashboardSummary(mentorId);
-
-      return MentorSummary(
-        totalMentees: assignmentsLoaded ? totalMentees : fallbackSummary.totalMentees,
-        activeSessions: (scheduledData != null || inProgressData != null) ? activeSessions : fallbackSummary.activeSessions,
-        logbooksPending: fallbackSummary.logbooksPending,
-        todaySchedule: (scheduledData != null || inProgressData != null) ? todaySchedule : fallbackSummary.todaySchedule,
-        recentActivity: fallbackSummary.recentActivity,
-        activeCycleName: cycleName ?? fallbackSummary.activeCycleName,
+      todaySchedule.add(
+        ScheduleItem(
+          sessionId: (s['id'] as num?)?.toInt(),
+          mode: mode,
+          time: _formatTime(start),
+          title: title,
+          subtitle: isVirtual
+              ? 'Virtual session'
+              : (s['location'] ?? 'In-person visit').toString(),
+          scheduledStartTime: start,
+          action: isVirtual ? SessionAction.start : SessionAction.details,
+        ),
       );
-    } catch (e, st) {
-      debugPrint('[DioMentorRepository] Error fetching dashboard summary: $e\n$st');
-      return await _fallback.getDashboardSummary(mentorId);
     }
+    todaySchedule.sort((a, b) => (a.scheduledStartTime ?? now)
+        .compareTo(b.scheduledStartTime ?? now));
+
+    // Cycle: only a cycle the server marks active.
+    Map? active;
+    for (final c in _list(cyclesData).whereType<Map>()) {
+      if (c['status']?.toString() == 'active' || c['is_active'] == true) {
+        active = c;
+        break;
+      }
+    }
+
+    MentorshipCycleInfo? cycleInfo;
+    if (active != null) {
+      DateTime? date(Object? v) => v == null ? null : DateTime.tryParse('$v');
+      cycleInfo = MentorshipCycleInfo(
+        id: (active['id'] as num?)?.toInt() ?? 0,
+        name: (active['name'] ?? active['title'] ?? active['cycle_name'])
+                ?.toString() ??
+            'Mentorship cycle',
+        code: (active['code'] ?? active['cycle_code'])?.toString(),
+        thematicArea:
+            (active['thematic_area'] ?? active['thematicArea'] ?? active['topic'])
+                ?.toString(),
+        startDate: date(active['start_date'] ?? active['startDate']),
+        endDate: date(active['end_date'] ?? active['endDate']),
+        status: (active['status'] ?? 'active').toString(),
+        studentNames: studentNames,
+      );
+    }
+
+    return MentorSummary(
+      totalMentees: assignments.length,
+      activeSessions: live.length,
+      logbooksPending: 0,
+      todaySchedule: todaySchedule,
+      recentActivity: const [],
+      activeCycleName: cycleInfo?.name,
+      activeCycle: cycleInfo,
+    );
   }
 
-  Future<dynamic> _fetchAssignments(int mentorId) async {
+  /// Returns the response body, or null if the request failed.
+  Future<dynamic> _get(String path, {Map<String, dynamic>? query}) async {
     try {
-      final r = await _dio.get(ApiEndpoints.mentorAssignments(mentorId));
-      final list = _extractList(r.data);
-      if (list.isNotEmpty) return r.data;
-    } catch (_) {}
-
-    try {
-      final r = await _dio.get(ApiEndpoints.assignments, queryParameters: {'mentor_id': mentorId});
+      final r = await _dio.get(path, queryParameters: query);
       return r.data;
     } catch (e) {
-      debugPrint('[DioMentorRepository] Failed to fetch mentor assignments: $e');
+      debugPrint('[MentorDashboard] $path failed: $e');
       return null;
     }
   }
 
-  List<dynamic> _extractList(dynamic raw) {
+  List<dynamic> _list(dynamic raw) {
     if (raw == null) return [];
     if (raw is List) return raw;
     if (raw is Map) {
       final data = raw['data'] ?? raw;
       if (data is List) return data;
+      const keys = ['items', 'assignments', 'cycles', 'sessions'];
       if (data is Map) {
-        for (final key in ['items', 'assignments', 'cycles', 'sessions', 'contacts', 'conversations']) {
-          if (data[key] is List) return data[key] as List;
+        for (final k in keys) {
+          if (data[k] is List) return data[k] as List;
         }
       }
-      for (final key in ['items', 'assignments', 'cycles', 'sessions', 'contacts', 'conversations']) {
-        if (raw[key] is List) return raw[key] as List;
+      for (final k in keys) {
+        if (raw[k] is List) return raw[k] as List;
       }
     }
     return [];
   }
 
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   String _formatTime(DateTime dt) {
-    final local = dt.toLocal();
-    final hour = local.hour;
-    final minute = local.minute.toString().padLeft(2, '0');
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final standardHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    return '${standardHour.toString().padLeft(2, '0')}:$minute $period';
+    final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '${hour.toString().padLeft(2, '0')}:$minute $period';
   }
 }

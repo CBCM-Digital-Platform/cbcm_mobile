@@ -1,22 +1,20 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../core/storage/secure_storage_provider.dart';
 import '../../../core/storage/storage_keys.dart';
 import '../domain/user_role.dart';
+import 'must_change_password_provider.dart';
+import 'pending_password_provider.dart';
 
-// Temporary fake tokens for now. Replaced by real auth state in Week 2
-// Day 3's Dio integration once the backend exists.
 class CurrentRoleNotifier extends Notifier<UserRole?> {
   @override
   UserRole? build() {
     _restoreSession();
-    return null; // starts null, then updates async once storage is read
+    return null; // starts null, then updates once storage is read
   }
 
   Future<void> _restoreSession() async {
-    final storage = ref.read(secureStorageProvider);
-    final savedRole = await storage.read(StorageKeys.userRole);
+    final savedRole =
+        await ref.read(secureStorageProvider).read(StorageKeys.userRole);
 
     if (savedRole == UserRole.mentee.name) {
       state = UserRole.mentee;
@@ -30,12 +28,19 @@ class CurrentRoleNotifier extends Notifier<UserRole?> {
   Future<void> logout() async {
     final storage = ref.read(secureStorageProvider);
 
-    await storage.delete(StorageKeys.accessToken);
-    await storage.delete(StorageKeys.refreshToken);
-    await storage.delete(StorageKeys.userRole);
-    await storage.delete(StorageKeys.mustChangePassword);
-
+    // Leave protected screens immediately, then clean up.
     state = null;
+    ref.read(pendingPasswordProvider.notifier).clear();
+    ref.read(mustChangePasswordProvider.notifier).set(false);
+
+    await Future.wait([
+      storage.delete(StorageKeys.accessToken),
+      storage.delete(StorageKeys.refreshToken),
+      storage.delete(StorageKeys.userRole),
+      storage.delete(StorageKeys.userId),
+      storage.delete(StorageKeys.userName),
+      storage.delete(StorageKeys.userEmail),
+    ]);
   }
 }
 

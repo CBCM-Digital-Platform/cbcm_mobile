@@ -1,17 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_response.dart';
+import '../../../core/security/offline_access.dart';
 import '../../../core/storage/secure_storage_provider.dart';
 import '../../../core/storage/storage_keys.dart';
+import '../../messaging/data/messaging_providers.dart';
+import '../../messaging/data/temporary_contacts.dart';
 import '../data/auth_repository_provider.dart';
 import '../domain/user.dart';
 import 'current_role_provider.dart';
+import 'must_change_password_provider.dart';
 import 'pending_password_provider.dart';
-import '../../../core/security/offline_access.dart';
 
 /// TEMPORARY dev switch: lets accounts that still have a temporary password
 /// reach the dashboard without changing it. Only works in debug builds.
-/// Keep this false now that you have your own test accounts.
 const _devSkipForcedReset = false;
 
 sealed class LoginState {
@@ -67,16 +69,24 @@ class LoginController extends Notifier<LoginState> {
         pending.clear();
       }
 
-      // Tokens are saved by the repository itself (real or mock).
+      // Set this BEFORE the role so the router never flashes the dashboard.
+      ref.read(mustChangePasswordProvider.notifier).set(user.mustChangePassword);
+
+      // Tokens are saved by the repository itself.
       final storage = ref.read(secureStorageProvider);
-      await storage.write(StorageKeys.userRole, user.role.name);
-      await storage.write(StorageKeys.userId, user.id);
-      await storage.write(StorageKeys.userName, user.name);
-      await storage.write(
-          StorageKeys.mustChangePassword, user.mustChangePassword.toString());
+      await Future.wait([
+        storage.write(StorageKeys.userRole, user.role.name),
+        storage.write(StorageKeys.userId, user.id),
+        storage.write(StorageKeys.userName, user.name),
+      ]);
 
       ref.read(currentRoleProvider.notifier).setRole(user.role);
-            await ref.read(offlineAccessProvider.notifier).markVerified();
+      ref.invalidate(currentUserIdProvider);
+      ref.invalidate(conversationsProvider);
+      ref.invalidate(contactsApiProvider);
+
+      // Not awaited: login should not wait for this bookkeeping.
+      ref.read(offlineAccessProvider.notifier).markVerified();
 
       state = LoginSuccess(user);
     } on ApiException catch (e) {

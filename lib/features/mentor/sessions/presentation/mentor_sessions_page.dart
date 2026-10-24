@@ -21,6 +21,15 @@ final mentorSessionsProvider =
   return repo.getSessions(mentorId: mentorId);
 });
 
+final menteeSessionsProvider =
+    FutureProvider.autoDispose<List<SessionModel>>((ref) async {
+  final storage = ref.watch(secureStorageProvider);
+  final menteeIdStr = await storage.read(StorageKeys.userId);
+  final menteeId = int.tryParse(menteeIdStr ?? '');
+  final repo = ref.watch(sessionsRepositoryProvider);
+  return repo.getSessions(menteeId: menteeId);
+});
+
 class MentorSessionsPage extends ConsumerStatefulWidget {
   const MentorSessionsPage({super.key});
 
@@ -54,6 +63,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'mentor_sessions_fab',
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
@@ -167,7 +177,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final session = filtered[index];
-                        return _SessionCard(
+                        return SessionCard(
                           session: session,
                           onReschedule: () async {
                             await ScheduleSessionSheet.show(
@@ -225,18 +235,25 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
   }
 }
 
-class _SessionCard extends ConsumerWidget {
-  const _SessionCard({
+class SessionCard extends ConsumerWidget {
+  const SessionCard({
+    super.key,
     required this.session,
-    required this.onReschedule,
+    this.onReschedule,
+    this.isMenteeView = false,
   });
 
   final SessionModel session;
-  final VoidCallback onReschedule;
+  final VoidCallback? onReschedule;
+  final bool isMenteeView;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isVirtual = session.isVirtual;
+    final partnerName = isMenteeView
+        ? (session.mentorName ?? 'Mentor')
+        : (session.menteeName ?? 'Mentee');
+    final roleSubtitle = isMenteeView ? 'Assigned Mentor' : 'Assigned Mentee';
 
     return AppCard(
       child: Column(
@@ -289,7 +306,7 @@ class _SessionCard extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
 
-          // Mentee avatar and title
+          // Avatar and title
           Row(
             children: [
               CircleAvatar(
@@ -303,14 +320,16 @@ class _SessionCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      session.menteeName ?? 'Mentee',
+                      partnerName,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      session.sessionGoals ?? session.sessionType,
+                      session.sessionGoals != null && session.sessionGoals!.isNotEmpty
+                          ? session.sessionGoals!
+                          : '$roleSubtitle • ${session.sessionType}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -351,7 +370,7 @@ class _SessionCard extends ConsumerWidget {
                         context: context,
                         ref: ref,
                         sessionId: session.id,
-                        sessionTitle: session.menteeName,
+                        sessionTitle: partnerName,
                       );
                     },
                   ),
@@ -364,12 +383,14 @@ class _SessionCard extends ConsumerWidget {
                     onPressed: () {},
                   ),
                 ),
-              const SizedBox(width: 8),
-              AppButton(
-                label: 'Reschedule',
-                variant: AppButtonVariant.secondary,
-                onPressed: onReschedule,
-              ),
+              if (onReschedule != null) ...[
+                const SizedBox(width: 8),
+                AppButton(
+                  label: 'Reschedule',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: onReschedule,
+                ),
+              ],
             ],
           ),
         ],

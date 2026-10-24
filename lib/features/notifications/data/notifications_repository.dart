@@ -10,6 +10,17 @@ class NotificationsRepository {
 
   final Dio _dio;
 
+  /// Fake local notifications were removed. This does nothing and only
+  /// exists so older call sites still compile. Delete those calls.
+  @Deprecated('The server creates real notifications.')
+  static void addLocalNotification({
+    required String type,
+    required String title,
+    required String body,
+    String? referenceType,
+    int? referenceId,
+  }) {}
+
   Future<Map<String, dynamic>> _call(
     Future<Response<dynamic>> Function() request,
   ) async {
@@ -43,7 +54,13 @@ class NotificationsRepository {
     final data = body['data'];
     if (data is num) return data.toInt();
     if (data is Map) {
-      for (final key in const ['count', 'unreadCount', 'unread_count', 'unread', 'total']) {
+      for (final key in const [
+        'count',
+        'unreadCount',
+        'unread_count',
+        'unread',
+        'total'
+      ]) {
         final v = data[key];
         if (v is num) return v.toInt();
       }

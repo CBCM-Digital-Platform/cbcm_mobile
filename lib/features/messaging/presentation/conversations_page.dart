@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/colors.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_card.dart';
 import '../data/messaging_providers.dart';
 import '../data/messaging_repository.dart';
+import '../data/temporary_contacts.dart';
 import '../domain/message_models.dart';
 import 'chat_page.dart';
 import 'message_time.dart';
@@ -55,6 +58,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
+        heroTag: 'conversations_fab',
         onPressed: _newMessage,
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.edit_outlined, color: Colors.white),
@@ -131,16 +135,11 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                   return RefreshIndicator(
                     onRefresh: () async {
                       ref.invalidate(conversationsProvider);
-                      await ref.read(conversationsProvider.future);
+                      ref.invalidate(contactsApiProvider);
+                      await ref.read(conversationsProvider.future).catchError((_) => <Conversation>[]);
                     },
                     child: shown.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: const [
-                              SizedBox(height: 80),
-                              Center(child: Text('No conversations yet.')),
-                            ],
-                          )
+                        ? _buildEmptyOrDirectContacts(context, ref)
                         : ListView.separated(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding:
@@ -176,6 +175,135 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
       side: BorderSide.none,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       onSelected: (_) => setState(() => _filter = value),
+    );
+  }
+
+  Widget _buildEmptyOrDirectContacts(BuildContext context, WidgetRef ref) {
+    final mentors = ref.watch(mentorContactsProvider);
+    final mentees = ref.watch(menteeContactsProvider);
+    final assigned = <MessageUser>[...mentors, ...mentees];
+
+    if (_query.isNotEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 40),
+          Center(
+            child: Text(
+              'No conversations matching "$_query"',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (assigned.isNotEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 80),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.blue.shade100),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.mark_chat_unread_outlined, color: AppColors.primary, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Direct Contacts',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      Text(
+                        'Start a conversation with your assigned mentorship partner below.',
+                        style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          for (final person in assigned)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: AppCard(
+                child: Row(
+                  children: [
+                    UserAvatar(user: person, radius: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            person.fullName,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                          Text(
+                            person.role.toLowerCase() == 'mentor'
+                                ? 'Assigned Mentor'
+                                : 'Assigned Mentee',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AppButton(
+                      label: 'Message',
+                      onPressed: () => openChatWith(context, ref, person),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(24),
+      children: [
+        const SizedBox(height: 60),
+        Icon(Icons.chat_bubble_outline, size: 56, color: Colors.grey.shade400),
+        const SizedBox(height: 14),
+        Center(
+          child: Text(
+            'No conversations yet',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Center(
+          child: Text(
+            noContactsMessage(),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: AppButton(
+            label: 'Start New Message',
+            onPressed: _newMessage,
+          ),
+        ),
+      ],
     );
   }
 }

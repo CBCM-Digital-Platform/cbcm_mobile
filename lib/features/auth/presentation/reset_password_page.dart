@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/api_response.dart';
-import '../../../core/storage/secure_storage_provider.dart';
-import '../../../core/storage/storage_keys.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../routing/app_routes.dart';
 import '../data/auth_repository_provider.dart';
 import 'current_role_provider.dart';
+import 'must_change_password_provider.dart';
 import 'pending_password_provider.dart';
 
 enum _Strength { empty, weak, fair, strong }
@@ -90,7 +89,6 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     }
 
     final repo = ref.read(authRepositoryProvider);
-    final storage = ref.read(secureStorageProvider);
     final pending = ref.read(pendingPasswordProvider.notifier);
     final roleNotifier = ref.read(currentRoleProvider.notifier);
 
@@ -100,7 +98,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         currentPassword: current,
         newPassword: _newPasswordController.text,
       );
-      await storage.write(StorageKeys.mustChangePassword, 'false');
+      ref.read(mustChangePasswordProvider.notifier).set(false);
       pending.clear();
       if (!mounted) return;
       final role = ref.read(currentRoleProvider);

@@ -10,10 +10,16 @@ import '../../learning/domain/curriculum.dart';
 import '../../learning/presentation/curriculum_controller.dart';
 import '../../../auth/presentation/profile_menu_button.dart';
 import '../../../notifications/presentation/notification_bell.dart';
+import '../../../mentor/sessions/domain/session_model.dart';
+import '../../../mentor/sessions/presentation/mentor_sessions_page.dart';
+import '../../../mentor/sessions/presentation/schedule_session_sheet.dart';
+import '../../../mentor/sessions/presentation/meeting_launcher.dart';
+import '../../../messaging/data/temporary_contacts.dart';
+import '../../../messaging/presentation/contact_picker.dart';
 
 final _userNameProvider = FutureProvider.autoDispose((ref) async {
   final storage = ref.watch(secureStorageProvider);
-  return (await storage.read(StorageKeys.userName)) ?? 'Sarah';
+  return (await storage.read(StorageKeys.userName)) ?? 'there';
 });
 
 class MenteeDashboardPage extends ConsumerStatefulWidget {
@@ -62,7 +68,7 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
           children: [
             // 1. WELCOME HERO CARD
             _WelcomeHeroCard(
-              name: name.value ?? 'Sarah',
+              name: name.value ?? 'there',
               curriculum: data,
               onViewAllPressed: () => setState(() => _expandAll = !_expandAll),
             ),
@@ -258,7 +264,7 @@ class _WelcomeHeroCard extends StatelessWidget {
 
           // Greeting & Active Chapter title
           Text(
-            'Welcome back, $name!',
+            '${curriculum.curriculumPercent > 0 ? "Welcome back" : "Welcome"}, $name!',
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -266,13 +272,14 @@ class _WelcomeHeroCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            'Chapter ${activeChapter?.number ?? 2}: ${activeChapter?.title ?? 'Intrapartum Care & Clinical Obstetric Skills'}',
-            style: const TextStyle(
-              fontSize: 12.5,
-              color: Colors.white70,
+          if (activeChapter != null)
+            Text(
+              'Chapter ${activeChapter.number}: ${activeChapter.title}',
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: Colors.white70,
+              ),
             ),
-          ),
           const SizedBox(height: 16),
 
           // Inner Next Up card
@@ -289,7 +296,9 @@ class _WelcomeHeroCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'NEXT UP IN MODULE ${activeModule?.number ?? 4}',
+                      activeModule != null
+                          ? 'NEXT UP IN MODULE ${activeModule.number}'
+                          : 'NEXT UP',
                       style: const TextStyle(
                         color: Color(0xFFFACC15),
                         fontSize: 11,
@@ -305,10 +314,9 @@ class _WelcomeHeroCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        activeLesson != null &&
-                                activeLesson.status == LessonStatus.inProgress
+                        activeLesson != null
                             ? '${activeLesson.progressPercent.toStringAsFixed(0)}%'
-                            : '75%',
+                            : '0%',
                         style: const TextStyle(
                           color: Color(0xFFFACC15),
                           fontSize: 11,
@@ -320,8 +328,7 @@ class _WelcomeHeroCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  activeLesson?.title ??
-                      'Lesson 2: Fundal Height & Palpation Assessment',
+                  activeLesson?.title ?? 'No active lesson',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14.5,
@@ -332,10 +339,9 @@ class _WelcomeHeroCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(3),
                   child: LinearProgressIndicator(
-                    value: activeLesson != null &&
-                            activeLesson.status == LessonStatus.inProgress
+                    value: activeLesson != null
                         ? (activeLesson.progressPercent / 100).clamp(0.0, 1.0)
-                        : 0.75,
+                        : 0.0,
                     minHeight: 5,
                     backgroundColor: Colors.white24,
                     valueColor:
@@ -451,14 +457,14 @@ class _MetricsGrid extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 label: 'Curriculum',
-                topIcon: const SizedBox(
+                topIcon: SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
-                    value: 0.71,
+                    value: (curriculum.curriculumPercent / 100).clamp(0.0, 1.0),
                     strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation(AppColors.primary),
-                    backgroundColor: Color(0xFFE5E7EB),
+                    valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                    backgroundColor: const Color(0xFFE5E7EB),
                   ),
                 ),
                 value: '${curriculum.curriculumPercent.toStringAsFixed(0)}%',
@@ -676,6 +682,10 @@ class _ChapterTileState extends State<_ChapterTile> {
 
     // ACTIVE CHAPTER (Chapter 2)
     if (widget.state == _ChapterState.active) {
+      final totalL = widget.chapter.modules.fold<int>(0, (sum, m) => sum + m.totalLessons);
+      final completedL = widget.chapter.modules.fold<int>(0, (sum, m) => sum + m.completedLessons);
+      final activePct = totalL == 0 ? 0 : (completedL / totalL * 100).round();
+
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -754,9 +764,9 @@ class _ChapterTileState extends State<_ChapterTile> {
                         color: const Color(0xFF2E6333),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        '75% Active',
-                        style: TextStyle(
+                      child: Text(
+                        '$activePct% Active',
+                        style: const TextStyle(
                           color: Color(0xFF86EFAC),
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -896,21 +906,24 @@ class _ChapterTileState extends State<_ChapterTile> {
                     const Divider(height: 1, color: Color(0xFFF3F4F6)),
                     const SizedBox(height: 8),
                     for (final m in widget.chapter.modules)
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          'Module ${m.number}: ${m.title}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13),
+                      Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            'Module ${m.number}: ${m.title}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                          trailing: Text(
+                            '${m.completedLessons}/${m.totalLessons} (${m.percent.toStringAsFixed(0)}%)',
+                            style: const TextStyle(
+                                color: Color(0xFF6B7280), fontSize: 12),
+                          ),
+                          onTap: () =>
+                              context.push(AppRoutes.moduleDetail, extra: m),
                         ),
-                        trailing: Text(
-                          '${m.completedLessons}/${m.totalLessons} (${m.percent.toStringAsFixed(0)}%)',
-                          style: const TextStyle(
-                              color: Color(0xFF6B7280), fontSize: 12),
-                        ),
-                        onTap: () =>
-                            context.push(AppRoutes.moduleDetail, extra: m),
                       ),
                   ],
                 ),
@@ -922,6 +935,16 @@ class _ChapterTileState extends State<_ChapterTile> {
 
     // NEXT UP CHAPTER (Chapter 3)
     if (widget.state == _ChapterState.nextUp) {
+      final totalL = widget.chapter.modules.fold<int>(0, (sum, m) => sum + m.totalLessons);
+      final completedL = widget.chapter.modules.fold<int>(0, (sum, m) => sum + m.completedLessons);
+      final readyPct = totalL == 0 ? 0 : (completedL / totalL * 100).round();
+      final tagText = readyPct > 0 ? 'NEXT UP • $readyPct% READY' : 'NEXT UP';
+      final modulesLabel = widget.chapter.modules.isEmpty
+          ? ''
+          : (widget.chapter.modules.length == 1
+              ? 'Module ${widget.chapter.modules.first.number}'
+              : 'Modules ${widget.chapter.modules.first.number}-${widget.chapter.modules.last.number}');
+
       return Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -955,9 +978,9 @@ class _ChapterTileState extends State<_ChapterTile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'NEXT UP • 15% READY',
-                    style: TextStyle(
+                  Text(
+                    tagText,
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
@@ -980,16 +1003,18 @@ class _ChapterTileState extends State<_ChapterTile> {
             ),
             const SizedBox(width: 8),
             Row(
-              children: const [
-                Text(
-                  'Modules 7-9',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: Color(0xFF9CA3AF),
+              children: [
+                if (modulesLabel.isNotEmpty) ...[
+                  Text(
+                    modulesLabel,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFF9CA3AF),
+                    ),
                   ),
-                ),
-                SizedBox(width: 4),
-                Icon(Icons.lock_outline, size: 16, color: Color(0xFF9CA3AF)),
+                  const SizedBox(width: 4),
+                ],
+                const Icon(Icons.lock_outline, size: 16, color: Color(0xFF9CA3AF)),
               ],
             ),
           ],
@@ -1355,11 +1380,15 @@ class _LessonCard extends StatelessWidget {
 // -------------------------------------------------------------
 // 4. CLINICAL SUPPORT & SIMULATION CARDS
 // -------------------------------------------------------------
-class _MentorPreceptorCard extends StatelessWidget {
+class _MentorPreceptorCard extends ConsumerWidget {
   const _MentorPreceptorCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mentors = ref.watch(mentorContactsProvider);
+    final mentor = mentors.isNotEmpty ? mentors.first : null;
+    final mentorName = mentor?.fullName ?? 'Assigned Mentor';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1378,10 +1407,17 @@ class _MentorPreceptorCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 22,
-                backgroundImage:
-                    AssetImage('assets/images/mentee_N_mentro_photo.jpg'),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                child: Text(
+                  mentorName.isNotEmpty ? mentorName[0].toUpperCase() : 'M',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1389,17 +1425,21 @@ class _MentorPreceptorCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: const [
-                        Text(
-                          'Dr. Sarah Jenkins, CNM',
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1F2937),
+                      children: [
+                        Flexible(
+                          child: Text(
+                            mentorName,
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1F2937),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(
+                        const SizedBox(width: 4),
+                        const Icon(
                           Icons.check_circle,
                           size: 15,
                           color: Color(0xFF16A34A),
@@ -1407,9 +1447,11 @@ class _MentorPreceptorCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      'Lead Midwifery Preceptor • St. Jude Maternity',
-                      style: TextStyle(
+                    Text(
+                      mentor != null
+                          ? (mentor.role.isNotEmpty ? mentor.role : 'Mentor')
+                          : 'No mentor assigned yet',
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF6B7280),
                       ),
@@ -1431,7 +1473,13 @@ class _MentorPreceptorCard extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  onPressed: () => context.go(AppRoutes.menteeMessages),
+                  onPressed: () {
+                    if (mentor != null) {
+                      openChatWith(context, ref, mentor);
+                    } else {
+                      context.go(AppRoutes.menteeMessages);
+                    }
+                  },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
@@ -1460,12 +1508,12 @@ class _MentorPreceptorCard extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('1-on-1 scheduling feature coming soon!'),
-                      ),
+                  onPressed: () async {
+                    await ScheduleSessionSheet.show(
+                      context,
+                      menteeName: mentor?.fullName,
                     );
+                    ref.invalidate(menteeSessionsProvider);
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1493,144 +1541,236 @@ class _MentorPreceptorCard extends StatelessWidget {
   }
 }
 
-class _PracticalDemoSessionCard extends StatelessWidget {
+class _PracticalDemoSessionCard extends ConsumerWidget {
   const _PracticalDemoSessionCard();
 
+  static const _months = [
+    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+  ];
+
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionsAsync = ref.watch(menteeSessionsProvider);
+
+    return sessionsAsync.when(
+      loading: () => Container(
+        height: 90,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: const SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
       ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAB308),
-                  borderRadius: BorderRadius.circular(10),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (sessions) {
+        if (sessions.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.event_note, color: Colors.grey),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      'OCT',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF78350F),
-                      ),
-                    ),
-                    Text(
-                      '12',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'PRACTICAL DEMO SESSION',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF166534),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Simulation Lab B • Bedside Fundal Assessment',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Thu, 14:00 - 15:30 (Mandatory CPD clearance)',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              InkWell(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Opening Lab Checklist...')),
-                  );
-                },
-                child: Row(
-                  children: const [
-                    Text(
-                      'View Lab Checklist',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward,
-                      size: 15,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Seat Confirmed',
-                  style: TextStyle(
-                    color: Color(0xFF166534),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'No upcoming supervision sessions. Book one with your mentor above!',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
                   ),
                 ),
+              ],
+            ),
+          );
+        }
+
+        final session = sessions.first;
+        final dt = session.scheduledStartTime;
+        final monthStr = _months[dt.month - 1];
+        final dayStr = dt.day.toString();
+        final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+        final minute = dt.minute.toString().padLeft(2, '0');
+        final period = dt.hour >= 12 ? 'PM' : 'AM';
+        final timeStr = '$hour:$minute $period (${session.durationMinutes}m)';
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-        ],
-      ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAB308),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          monthStr,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF78350F),
+                          ),
+                        ),
+                        Text(
+                          dayStr,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          session.sessionType.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF166534),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          session.sessionGoals != null && session.sessionGoals!.isNotEmpty
+                              ? session.sessionGoals!
+                              : (session.mentorName != null
+                                  ? 'Mentoring with ${session.mentorName}'
+                                  : 'Clinical Supervision Session'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          timeStr,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (session.isVirtual)
+                    InkWell(
+                      onTap: () {
+                        launchJitsiMeeting(
+                          context: context,
+                          ref: ref,
+                          sessionId: session.id,
+                          sessionTitle: session.sessionGoals ?? 'Mentorship Session',
+                        );
+                      },
+                      child: Row(
+                        children: const [
+                          Icon(
+                            Icons.videocam_outlined,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Join Virtual Room',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          session.location ?? 'In-Person Facility',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      session.isVirtual ? 'Virtual Jitsi' : 'Confirmed',
+                      style: const TextStyle(
+                        color: Color(0xFF166534),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1660,13 +1800,13 @@ class _HandbookResourceCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFE4E6),
+              color: const Color(0xFFEFF6FF),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Center(
               child: Icon(
-                Icons.picture_as_pdf,
-                color: Color(0xFFE11D48),
+                Icons.folder_open_outlined,
+                color: Color(0xFF1D4ED8),
                 size: 22,
               ),
             ),
@@ -1677,7 +1817,7 @@ class _HandbookResourceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text(
-                  'Fundal Palpation Clinical Handbook',
+                  'Clinical Learning Resources',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1688,7 +1828,7 @@ class _HandbookResourceCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'ACOG & WHO Standards (v4.2 • 4.8MB)',
+                  'Browse guidelines, protocols, and reference materials',
                   style: TextStyle(
                     fontSize: 11.5,
                     color: Color(0xFF6B7280),
@@ -1699,28 +1839,32 @@ class _HandbookResourceCard extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           InkWell(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Downloading Clinical Handbook...')),
-              );
-            },
+            onTap: () => context.go(AppRoutes.menteeResources),
             borderRadius: BorderRadius.circular(18),
             child: Container(
-              width: 32,
-              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary,
-                  width: 1.5,
-                ),
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(
-                child: Icon(
-                  Icons.arrow_downward,
-                  size: 17,
-                  color: AppColors.primary,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'Open',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(width: 2),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 11,
+                    color: AppColors.primary,
+                  ),
+                ],
               ),
             ),
           ),

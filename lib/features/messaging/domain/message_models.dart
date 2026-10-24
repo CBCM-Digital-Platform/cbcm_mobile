@@ -26,12 +26,14 @@ class MessageUser {
     required this.fullName,
     required this.role,
     this.avatarUrl,
+    this.email,
   });
 
   final int id;
   final String fullName;
   final String role;
   final String? avatarUrl;
+  final String? email;
 
   factory MessageUser.fromJson(Map<String, dynamic> raw) {
     // Some responses wrap the person: {"user_id": 6, "user": {...}}.
@@ -44,6 +46,7 @@ class MessageUser {
               'Unknown',
       role: _pick(json, ['role'])?.toString() ?? '',
       avatarUrl: _pick(json, ['avatarUrl', 'avatar_url'])?.toString(),
+      email: _pick(json, ['email', 'email_address'])?.toString(),
     );
   }
 
@@ -104,6 +107,9 @@ class ChatMessage {
     this.sender,
     this.attachment,
     this.readByUserIds = const [],
+    this.isReadDirectly = false,
+    this.readAt,
+    this.status,
   });
 
   final int id;
@@ -114,10 +120,50 @@ class ChatMessage {
   final MessageUser? sender;
   final MessageAttachment? attachment;
   final List<int> readByUserIds;
+  final bool isReadDirectly;
+  final DateTime? readAt;
+  final String? status;
+
+  bool isReadByOthers(int? myUserId) {
+    if (isReadDirectly) return true;
+    if (readAt != null) return true;
+    final s = status?.toLowerCase();
+    if (s == 'read' || s == 'seen') return true;
+    if (readByUserIds.isNotEmpty) {
+      if (myUserId == null) return true;
+      return readByUserIds.any((uid) => uid != myUserId);
+    }
+    return false;
+  }
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     final sender = _map(json['sender']);
     final attachment = _map(json['attachment']);
+    final isReadBool = json['is_read'] == true ||
+        json['isRead'] == true ||
+        json['seen'] == true ||
+        json['read'] == true;
+    final readAtDate = _parseDate(_pick(json, ['readAt', 'read_at', 'seenAt', 'seen_at']));
+    final statusStr = json['status']?.toString();
+
+    final rawReads = json['reads'] ?? json['read_by'] ?? json['readBy'] ?? json['readers'];
+    final readUserIds = <int>[];
+    if (rawReads is List) {
+      for (final r in rawReads) {
+        if (r is int) {
+          readUserIds.add(r);
+        } else if (r is num) {
+          readUserIds.add(r.toInt());
+        } else if (r is Map) {
+          final m = _map(r);
+          if (m != null) {
+            final uid = _int(_pick(m, ['userId', 'user_id', 'id']));
+            if (uid != 0) readUserIds.add(uid);
+          }
+        }
+      }
+    }
+
     return ChatMessage(
       id: _int(json['id']),
       conversationId:
@@ -131,9 +177,10 @@ class ChatMessage {
       sender: sender == null ? null : MessageUser.fromJson(sender),
       attachment:
           attachment == null ? null : MessageAttachment.fromJson(attachment),
-      readByUserIds: _maps(json['reads'])
-          .map((r) => _int(_pick(r, ['userId', 'user_id'])))
-          .toList(),
+      readByUserIds: readUserIds,
+      isReadDirectly: isReadBool,
+      readAt: readAtDate,
+      status: statusStr,
     );
   }
 }

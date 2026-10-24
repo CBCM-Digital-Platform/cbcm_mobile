@@ -10,7 +10,7 @@ import '../domain/message_models.dart';
 import 'message_time.dart';
 import 'messaging_widgets.dart';
 
-/// One conversation. Refreshes every 10 seconds while it is open.
+/// One conversation. Refreshes every 15 seconds while it is open.
 class ChatPage extends ConsumerStatefulWidget {
   const ChatPage({super.key, required this.conversationId});
 
@@ -31,7 +31,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   @override
   void initState() {
     super.initState();
-    _poll = Timer.periodic(const Duration(seconds: 10), (_) {
+    _poll = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) ref.invalidate(conversationProvider(widget.conversationId));
     });
   }
@@ -98,7 +98,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       (previous, next) {
         final c = next.value;
         if (c == null) return;
-                debugPrint('[CHAT] myId=$myId senderIds=${c.messages.map((m) => m.senderId).toList()}');
         if (c.unreadCount > 0) _markRead();
         if (c.messages.length != _lastMessageCount) {
           _lastMessageCount = c.messages.length;
@@ -193,6 +192,16 @@ class _MessageList extends StatelessWidget {
       return const Center(child: Text('No messages yet. Say hello!'));
     }
 
+    // In a 1:1 direct conversation, find the timestamp of the latest message from the other person
+    DateTime? lastOtherSentAt;
+    for (final m in messages) {
+      if (m.senderId != myId) {
+        if (lastOtherSentAt == null || m.sentAt.isAfter(lastOtherSentAt)) {
+          lastOtherSentAt = m.sentAt;
+        }
+      }
+    }
+
     final children = <Widget>[];
     DateTime? previous;
     for (final m in messages) {
@@ -202,7 +211,10 @@ class _MessageList extends StatelessWidget {
       previous = m.sentAt;
 
       final mine = m.senderId == myId;
-      final read = mine && m.readByUserIds.any((id) => id != myId);
+      // In a 1:1 chat, if the recipient replied after this message was sent, or if backend reports read, it is seen!
+      final read = mine &&
+          (m.isReadByOthers(myId) ||
+              (lastOtherSentAt != null && !m.sentAt.isAfter(lastOtherSentAt)));
       children.add(_Bubble(message: m, mine: mine, read: read));
     }
 
@@ -296,9 +308,47 @@ class _Bubble extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 4),
-          Text(
-            '${clockTime(message.sentAt)}${read ? '  ·  Read' : ''}',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                clockTime(message.sentAt),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+              if (mine) ...[
+                const SizedBox(width: 5),
+                if (read) ...[
+                  const Icon(
+                    Icons.done_all,
+                    size: 16,
+                    color: Color(0xFF0284C7),
+                  ),
+                  const SizedBox(width: 3),
+                  const Text(
+                    'Seen',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0284C7),
+                    ),
+                  ),
+                ] else ...[
+                  Icon(
+                    Icons.done,
+                    size: 16,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    'Sent',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ],
+            ],
           ),
         ],
       ),
@@ -437,3 +487,4 @@ class _InputBar extends StatelessWidget {
     );
   }
 }
+

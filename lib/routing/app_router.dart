@@ -1,156 +1,75 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../core/offline/connectivity_service.dart';
-import '../core/widgets/app_button.dart';
-import '../core/widgets/app_button_row.dart';
 import '../core/widgets/placeholder_page.dart';
 import '../features/auth/domain/user_role.dart';
 import '../features/auth/presentation/current_role_provider.dart';
 import '../features/auth/presentation/login_page.dart';
+import '../features/auth/presentation/must_change_password_provider.dart';
 import '../features/auth/presentation/reset_password_page.dart';
+import '../features/home/welcome_page.dart';
 import '../features/mentee/dashboard/presentation/mentee_dashboard_page.dart';
 import '../features/mentee/learning/domain/curriculum.dart';
+import '../features/mentee/learning/presentation/learn_page.dart';
 import '../features/mentee/learning/presentation/lesson_reader_page.dart';
 import '../features/mentee/learning/presentation/module_detail_page.dart';
-import '../features/mentee/presentation/mentee_shell.dart';
-import '../features/mentor/dashboard/presentation/mentor_dashboard_page.dart';
-import '../features/mentor/presentation/mentor_shell.dart';
-import 'app_routes.dart';
-import '../features/home/welcome_page.dart';
-import '../core/storage/secure_storage_provider.dart';
-import '../core/storage/storage_keys.dart';
-import '../features/messaging/presentation/conversations_page.dart';
-import '../features/mentee/resources/presentation/resources_page.dart';
-import '../features/mentee/learning/presentation/learn_page.dart';
-import '../features/mentor/mentees/presentation/mentees_page.dart';
 import '../features/mentee/mentorship/presentation/my_mentor_page.dart';
+import '../features/mentee/presentation/mentee_shell.dart';
+import '../features/mentee/resources/presentation/resources_page.dart';
+import '../features/mentor/dashboard/presentation/mentor_dashboard_page.dart';
+import '../features/mentor/mentees/presentation/mentees_page.dart';
+import '../features/mentor/presentation/mentor_shell.dart';
 import '../features/mentor/sessions/presentation/mentor_sessions_page.dart';
-
-
-// Temporary dev page, removed once Mentee/Mentor dashboards are real
-class HomePage extends ConsumerWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(currentRoleProvider);
-    final connectivity = ref.watch(connectivityProvider);
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Current role: ${role?.name ?? 'none'}'),
-              Text('Connectivity: ${connectivity.name}'),
-              const SizedBox(height: 24),
-              if (role == null)
-                FilledButton(
-                  onPressed: () => context.go(AppRoutes.login),
-                  child: const Text('Go to Login'),
-                )
-              else ...[
-                FilledButton(
-                  onPressed: () => context.go(
-                    role == UserRole.mentee
-                        ? AppRoutes.menteeDashboard
-                        : AppRoutes.mentorDashboard,
-                  ),
-                  child: const Text('Go to Dashboard'),
-                ),
-                const SizedBox(height: 12),
-                AppButton(
-                  label: 'Logout',
-                  variant: AppButtonVariant.danger,
-                  onPressed: () =>
-                      ref.read(currentRoleProvider.notifier).logout(),
-                ),
-              ],
-              const SizedBox(height: 24),
-              SizedBox(
-                width: 320,
-                child: Column(
-                  children: [
-                    AppButtonRow(
-                      secondary: AppButton(
-                        label: 'Cancel',
-                        variant: AppButtonVariant.danger,
-                        onPressed: () {},
-                      ),
-                      primary: AppButton(label: 'Save', onPressed: () {}),
-                    ),
-                    const SizedBox(height: 12),
-                    AppButtonRow(
-                      secondary: AppButton(
-                        label: 'Back',
-                        variant: AppButtonVariant.secondary,
-                        onPressed: () {},
-                      ),
-                      primary: AppButton(label: 'Continue', onPressed: () {}),
-                    ),
-                    const SizedBox(height: 12),
-                    AppButtonRow(
-                      secondary: AppButton(
-                        label: 'Cancel',
-                        variant: AppButtonVariant.danger,
-                        onPressed: () {},
-                      ),
-                      primary: AppButton(
-                        label: 'Delete',
-                        variant: AppButtonVariant.danger,
-                        onPressed: () {},
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+import '../features/messaging/presentation/conversations_page.dart';
+import 'app_routes.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.listen(currentRoleProvider, (previous, next) => refresh.value++);
+  ref.listen(mustChangePasswordProvider, (previous, next) => refresh.value++);
   ref.onDispose(refresh.dispose);
+
+  String dashboardFor(UserRole role) => role == UserRole.mentee
+      ? AppRoutes.menteeDashboard
+      : AppRoutes.mentorDashboard;
 
   return GoRouter(
     initialLocation: AppRoutes.home,
     refreshListenable: refresh,
-        redirect: (context, state) async {
+    // Synchronous on purpose: no storage reads on navigation.
+    redirect: (context, state) {
       final role = ref.read(currentRoleProvider);
+      final mustChange = ref.read(mustChangePasswordProvider);
       final path = state.matchedLocation;
 
-      // A signed-in user who still has a temporary password can only
-      // reach the Reset Password screen.
-      if (role != null && path != AppRoutes.resetPassword) {
-        final mustChange = await ref
-            .read(secureStorageProvider)
-            .read(StorageKeys.mustChangePassword);
-        if (mustChange == 'true') return AppRoutes.resetPassword;
+      // Signed out: only the welcome and login screens.
+      if (role == null) {
+        final isPublic = path == AppRoutes.home || path == AppRoutes.login;
+        return isPublic ? null : AppRoutes.login;
+      }
+
+      // Signed in with a temporary password: only the reset screen.
+      if (mustChange) {
+        return path == AppRoutes.resetPassword ? null : AppRoutes.resetPassword;
+      }
+
+      // Signed in: skip the public screens.
+      if (path == AppRoutes.home ||
+          path == AppRoutes.login ||
+          path == AppRoutes.resetPassword) {
+        return dashboardFor(role);
       }
 
       if (path.startsWith('/mentee') && role != UserRole.mentee) {
-        return role == UserRole.mentor
-            ? AppRoutes.mentorDashboard
-            : AppRoutes.login;
+        return dashboardFor(role);
       }
       if (path.startsWith('/mentor') && role != UserRole.mentor) {
-        return role == UserRole.mentee
-            ? AppRoutes.menteeDashboard
-            : AppRoutes.login;
+        return dashboardFor(role);
       }
       return null;
     },
     routes: [
-           GoRoute(
+      GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const WelcomePage(),
       ),
@@ -162,12 +81,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.resetPassword,
         builder: (context, state) => const ResetPasswordPage(),
       ),
-                GoRoute(
+      GoRoute(
         path: AppRoutes.moduleDetail,
         builder: (context, state) {
           final module = state.extra;
           if (module is! CurriculumModule) {
-            // Data lost (e.g. page reload) — send back instead of crashing
+            // Data lost (e.g. page reload): send back instead of crashing.
             return const _RedirectToMenteeHome();
           }
           return ModuleDetailPage(module: module);
@@ -177,9 +96,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.lessonReader,
         builder: (context, state) {
           final lesson = state.extra;
-          if (lesson is! Lesson) {
-            return const _RedirectToMenteeHome();
-          }
+          if (lesson is! Lesson) return const _RedirectToMenteeHome();
           return LessonReaderPage(lesson: lesson);
         },
       ),
@@ -188,9 +105,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ResourcesPage(),
       ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return MenteeShell(navigationShell: navigationShell);
-        },
+        builder: (context, state, navigationShell) =>
+            MenteeShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(routes: [
             GoRoute(
@@ -201,15 +117,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.menteeLearn,
-              builder: (context, state) =>
-                  const LearnPage(),
+              builder: (context, state) => const LearnPage(),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.menteeMessages,
-              builder: (context, state) =>
-                  const ConversationsPage(),
+              builder: (context, state) => const ConversationsPage(),
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -222,16 +136,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.menteeMentorChat,
-              builder: (context, state) =>
-                  const MyMentorPage(),
+              builder: (context, state) => const MyMentorPage(),
             ),
           ]),
         ],
       ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return MentorShell(navigationShell: navigationShell);
-        },
+        builder: (context, state, navigationShell) =>
+            MentorShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(routes: [
             GoRoute(
@@ -242,22 +154,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.mentorMentees,
-              builder: (context, state) =>
-                  const MenteesPage(),
+              builder: (context, state) => const MenteesPage(),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.mentorSessions,
-              builder: (context, state) =>
-                  const MentorSessionsPage(),
+              builder: (context, state) => const MentorSessionsPage(),
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.mentorMessages,
-              builder: (context, state) =>
-                  const ConversationsPage(),
+              builder: (context, state) => const ConversationsPage(),
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -272,6 +181,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
 class _RedirectToMenteeHome extends StatelessWidget {
   const _RedirectToMenteeHome();
 

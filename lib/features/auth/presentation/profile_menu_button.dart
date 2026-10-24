@@ -74,7 +74,7 @@ class ProfileMenuButton extends ConsumerWidget {
               children: [
                 Icon(Icons.bug_report_outlined, size: 20),
                 SizedBox(width: 12),
-                Text('Debug: age offline access 8 days'),
+                Text('Debug: age access 8d'),
               ],
             ),
           ),

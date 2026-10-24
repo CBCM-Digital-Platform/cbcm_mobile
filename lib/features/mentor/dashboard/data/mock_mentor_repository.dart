@@ -34,18 +34,18 @@ class MockMentorRepository implements MentorRepository {
       recentActivity: [
         ActivityItem(
           icon: ActivityIconType.logbookSubmitted,
-          description: 'Chloe Jenkins submitted a new logbook entry.',
+          description: 'Le submitted the Clinical Case Study: Pre-eclampsia.',
           timeAgo: '2 hours ago',
-          tag: 'Module: Fetal Monitoring',
+          tag: 'Module: Maternal Health',
         ),
         ActivityItem(
           icon: ActivityIconType.clarificationRequested,
-          description: 'David Wu requested clarification on a clinical guideline.',
+          description: 'Le requested clarification on a clinical protocol.',
           timeAgo: '4 hours ago',
         ),
         ActivityItem(
           icon: ActivityIconType.approved,
-          description: "You approved Sarah T's logbook.",
+          description: "You evaluated Le's Quiz on Neonatal Resuscitation.",
           timeAgo: 'Yesterday',
         ),
       ],

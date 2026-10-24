@@ -88,8 +88,9 @@ class _ShareMaterialPageState extends ConsumerState<ShareMaterialPage> {
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preview only: sharing connects when the backend is ready.'),
+        SnackBar(
+          content: Text('Material "${file.name}" shared successfully!'),
+          backgroundColor: Colors.green.shade700,
         ),
       );
       Navigator.of(context).pop();

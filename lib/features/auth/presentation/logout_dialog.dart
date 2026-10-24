@@ -21,7 +21,10 @@ Future<void> confirmAndLogout(BuildContext context, WidgetRef ref) async {
   // Tell the backend first (it revokes the refresh token) while the token
   // is still stored. Never block logging out if this fails, e.g. offline.
   try {
-    await ref.read(authRepositoryProvider).logout();
+    await ref
+        .read(authRepositoryProvider)
+        .logout()
+        .timeout(const Duration(seconds: 3));
   } catch (_) {}
 
   // Clears the stored session and the role, which also re-checks the router.

@@ -109,7 +109,7 @@ class JitsiJoinToken {
 
   factory JitsiJoinToken.fromJson(Map<String, dynamic> json) {
     return JitsiJoinToken(
-      domain: (json['domain'] ?? 'meet.jit.si').toString(),
+      domain: (json['domain'] ?? '').toString(),
       room: (json['room'] ?? '').toString(),
       token: (json['token'] ?? '').toString(),
       expiresAt: json['expires_at']?.toString(),

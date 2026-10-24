@@ -233,211 +233,774 @@ class _MenteeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final subtitle = [
+      if (mentee.facility.isNotEmpty) mentee.facility,
+      if (mentee.level.isNotEmpty) mentee.level,
+    ].join(' • ');
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Row: Avatar + Name + Subtitle + Chevron
-            Row(
-              children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 26,
-                      backgroundColor:
-                          AppColors.primary.withValues(alpha: 0.12),
-                      child: Text(
-                        mentee.fullName.isNotEmpty
-                            ? mentee.fullName[0].toUpperCase()
-                            : 'M',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: mentee.isOnline ? Colors.green : Colors.grey,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _showMenteeDetailsSheet(context, ref, mentee, onSchedule),
+        child: AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Avatar + Name + Subtitle + Chevron
+              Row(
+                children: [
+                  Stack(
                     children: [
-                      Text(
-                        mentee.fullName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor:
+                            AppColors.primary.withValues(alpha: 0.12),
+                        child: Text(
+                          mentee.fullName.isNotEmpty
+                              ? mentee.fullName[0].toUpperCase()
+                              : 'M',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${mentee.facility} • ${mentee.level}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: mentee.isOnline ? Colors.green : Colors.grey,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                Icon(Icons.chevron_right, color: Colors.grey.shade400),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Badges Row
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: mentee.needsReview
-                        ? Colors.red.shade50
-                        : Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: mentee.needsReview
-                          ? Colors.red.shade200
-                          : Colors.green.shade200,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mentee.fullName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (subtitle.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        mentee.needsReview
-                            ? Icons.error_outline
-                            : Icons.check_circle_outline,
-                        size: 13,
+                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Badges Row
+              Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: mentee.needsReview
+                          ? Colors.red.shade50
+                          : Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
                         color: mentee.needsReview
-                            ? Colors.red.shade700
-                            : Colors.green.shade700,
+                            ? Colors.red.shade200
+                            : Colors.green.shade200,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        mentee.needsReview ? 'Needs Review' : 'Up to date',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          mentee.needsReview
+                              ? Icons.error_outline
+                              : Icons.check_circle_outline,
+                          size: 13,
                           color: mentee.needsReview
                               ? Colors.red.shade700
                               : Colors.green.shade700,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          mentee.needsReview ? 'Needs Review' : 'Up to date',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: mentee.needsReview
+                              ? Colors.red.shade700
+                              : Colors.green.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (mentee.pendingLogbooks > 0) ...[
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
+                      color: const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.amber.shade200),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
                     ),
-                    child: Text(
-                      '${mentee.pendingLogbooks} Logbooks',
+                    child: const Text(
+                      'Clinical Practicum',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Colors.amber.shade900,
+                        color: Color(0xFF1D4ED8),
                       ),
                     ),
                   ),
                 ],
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // Core Competency Progress
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Core Competency',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-                Text(
-                  '${mentee.competencyPercentage}%',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: mentee.competencyPercentage / 100,
-                minHeight: 6,
-                backgroundColor: Colors.grey.shade200,
-                color: AppColors.primary,
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-            // Action Buttons Row
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    label: 'Schedule',
-                    onPressed: onSchedule,
+              // Core Competency Progress
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Core Competency',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  Text(
+                    mentee.competencyPercentage > 0
+                        ? '${mentee.competencyPercentage}%'
+                        : 'No data yet',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: mentee.competencyPercentage / 100,
+                  minHeight: 6,
+                  backgroundColor: Colors.grey.shade200,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Clean 2-Row Action Buttons: Schedule full width on top, Message & Share side-by-side
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: 'Schedule Session',
+                  onPressed: onSchedule,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      label: 'Message',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () {
+                        if (mentee.messageUser != null) {
+                          openChatWith(context, ref, mentee.messageUser!);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppButton(
+                      label: 'Share Resource',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () {
+                        if (mentee.messageUser != null) {
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) => ShareMaterialPage(
+                                initialMentee: mentee.messageUser!,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showMenteeDetailsSheet(
+    BuildContext context,
+    WidgetRef ref,
+    AssignedMentee mentee,
+    VoidCallback onSchedule,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(width: 8),
-                AppButton(
-                  label: 'Message',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: () {
-                    if (mentee.messageUser != null) {
-                      openChatWith(context, ref, mentee.messageUser!);
-                    }
-                  },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      foregroundColor: AppColors.primary,
+                    ),
+                    icon: const Icon(Icons.arrow_back, size: 20),
+                    label: const Text(
+                      'Back to Mentees',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Header
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                    child: Text(
+                      mentee.fullName.isNotEmpty ? mentee.fullName[0].toUpperCase() : 'M',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mentee.fullName,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        if (mentee.email.isNotEmpty)
+                          Text(
+                            mentee.email,
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                          ),
+                        Text(
+                          '${mentee.facility} • ${mentee.level}',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Text(
+                      'Enrolled',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Clinical Progress Section
+              Text(
+                'Clinical & Curriculum Progress',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
                 ),
-                const SizedBox(width: 8),
-                AppButton(
-                  label: 'Share',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: () {
-                    if (mentee.messageUser != null) {
-                      Navigator.of(context, rootNavigator: true).push(
-                        MaterialPageRoute(
-                          builder: (_) => ShareMaterialPage(
-                            initialMentee: mentee.messageUser!,
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Core Competency Score', style: TextStyle(fontSize: 13)),
+                        Text(
+                          mentee.competencyPercentage > 0
+                              ? '${mentee.competencyPercentage}%'
+                              : 'No data yet',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    if (mentee.competencyPercentage > 0) ...[
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: mentee.competencyPercentage / 100,
+                          minHeight: 6,
+                          backgroundColor: Colors.grey.shade200,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text('Completed Modules', style: TextStyle(fontSize: 13)),
+                        Text('No data yet',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text('Quiz Performance', style: TextStyle(fontSize: 13)),
+                        Text(
+                          'No data yet',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
                           ),
                         ),
-                      );
-                    }
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Assignments & Quizzes Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Active Assignments',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Text(
+                  'No data yet',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Assignment & Quiz Actions (Disabled with Coming soon)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: Icon(Icons.add_task, size: 18, color: Colors.grey.shade400),
+                      label: Text(
+                        'Assign Task (Coming soon)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      onPressed: null,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: Icon(Icons.quiz_outlined, size: 18, color: Colors.grey.shade400),
+                      label: Text(
+                        'Assign Quiz (Coming soon)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      onPressed: null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Action Buttons
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: 'Schedule Clinical Session',
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    onSchedule();
                   },
                 ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      label: 'Message',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        if (mentee.messageUser != null) {
+                          openChatWith(context, ref, mentee.messageUser!);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppButton(
+                      label: 'Share Resource',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        if (mentee.messageUser != null) {
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) => ShareMaterialPage(
+                                initialMentee: mentee.messageUser!,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAssignTaskDialog(BuildContext context, WidgetRef ref, AssignedMentee mentee) {
+    final titleController = TextEditingController(text: 'Clinical Case Study: Maternal Hemorrhage Protocol');
+    final descController = TextEditingController(text: 'Review patient assessment checklist, triage decision matrix, and emergency response procedures.');
+    DateTime dueDate = DateTime.now().add(const Duration(days: 7));
+
+    showDialog(
+      context: context,
+      builder: (dlgContext) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              Icon(Icons.add_task, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Assign Task to ${mentee.fullName}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Assignment Title', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('Instructions / Objectives', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: descController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Due Date', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${dueDate.year}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}',
+                          style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.calendar_today, size: 16),
+                      label: const Text('Change'),
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: dueDate,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setDlgState(() => dueDate = picked);
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dlgContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.of(dlgContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Assignment assigned to ${mentee.fullName} successfully!'),
+                    backgroundColor: Colors.green.shade700,
+                  ),
+                );
+              },
+              child: const Text('Issue Assignment'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAssignQuizDialog(BuildContext context, WidgetRef ref, AssignedMentee mentee) {
+    String selectedQuiz = 'Emergency Obstetric Care (EmOC)';
+    String passingScore = '80%';
+
+    showDialog(
+      context: context,
+      builder: (dlgContext) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              Icon(Icons.quiz_outlined, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Assign Quiz to ${mentee.fullName}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Select Clinical Quiz / Assessment', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedQuiz,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'Emergency Obstetric Care (EmOC)',
+                      child: Text('Emergency Obstetric Care (EmOC)', style: TextStyle(fontSize: 13)),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Partograph & Labor Monitoring',
+                      child: Text('Partograph & Labor Monitoring', style: TextStyle(fontSize: 13)),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Neonatal Resuscitation Protocol',
+                      child: Text('Neonatal Resuscitation Protocol', style: TextStyle(fontSize: 13)),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Infection Prevention & Sterile Field',
+                      child: Text('Infection Prevention & Sterile Field', style: TextStyle(fontSize: 13)),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDlgState(() => selectedQuiz = val);
+                  },
+                ),
+                const SizedBox(height: 14),
+                const Text('Passing Threshold', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: passingScore,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: '70%', child: Text('70% (Standard)')),
+                    DropdownMenuItem(value: '80%', child: Text('80% (Clinical Mastery)')),
+                    DropdownMenuItem(value: '90%', child: Text('90% (Distinction)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDlgState(() => passingScore = val);
+                  },
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 18, color: Colors.blue.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${mentee.fullName} will be notified immediately to take this quiz before their next scheduled clinical review.',
+                          style: TextStyle(fontSize: 11.5, color: Colors.blue.shade900),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dlgContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.of(dlgContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Quiz "$selectedQuiz" assigned to ${mentee.fullName}!'),
+                    backgroundColor: Colors.green.shade700,
+                  ),
+                );
+              },
+              child: const Text('Assign Quiz'),
             ),
           ],
         ),

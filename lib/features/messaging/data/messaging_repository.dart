@@ -68,9 +68,6 @@ class MessagingRepository {
         '$_prefix/conversations',
         data: {
           'participantIds': [otherUserId],
-          'participant_ids': [otherUserId],
-          'recipientId': otherUserId,
-          'recipient_id': otherUserId,
           'type': 'direct',
         },
       ),
@@ -98,7 +95,7 @@ class MessagingRepository {
 
   /// PATCH /messages/conversations/{id}/read
   Future<void> markRead(int conversationId) async {
-    await _call(() => _dio.patch('$_prefix/conversations/$conversationId/read'));
+    await _call(() => _patchWithFallback('$_prefix/conversations/$conversationId/read'));
   }
 
   /// PATCH /messages/conversations/{id}/messages/{messageId}
@@ -108,7 +105,7 @@ class MessagingRepository {
     String content,
   ) async {
     final body = await _call(
-      () => _dio.patch(
+      () => _patchWithFallback(
         '$_prefix/conversations/$conversationId/messages/$messageId',
         data: {'content': content},
       ),
@@ -125,6 +122,18 @@ class MessagingRepository {
   }
 
   // ---- helpers ----
+
+  Future<Response<dynamic>> _patchWithFallback(String path, {dynamic data}) async {
+    try {
+      return await _dio.patch(path, data: data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404 && path.startsWith(_prefix)) {
+        final rawBase = _dio.options.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+        return await _dio.patch('$rawBase$path', data: data);
+      }
+      rethrow;
+    }
+  }
 
   Future<Response<dynamic>> _getWithFallback(String path) async {
     try {

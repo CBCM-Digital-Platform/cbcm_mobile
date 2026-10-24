@@ -63,34 +63,11 @@ class MentorDashboardPage extends ConsumerWidget {
               loading: () => Text('${_greeting()}...'),
               error: (error, _) => Text(_greeting()),
             ),
-            if (data.activeCycleName != null) ...[
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.loop_outlined, size: 14, color: AppColors.primary),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Cycle: ${data.activeCycleName}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            if (data.activeCycle != null || data.activeCycleName != null)
+              _MentorshipCycleCard(
+                cycle: data.activeCycle,
+                fallbackName: data.activeCycleName,
               ),
-            ],
             const SizedBox(height: 16),
             StatCard(
               label: 'Total Mentees',
@@ -106,17 +83,7 @@ class MentorDashboardPage extends ConsumerWidget {
               iconColor: AppColors.pageIndicator,
               accentColor: AppColors.pageIndicator,
             ),
-            const SizedBox(height: 12),
-            StatCard(
-              label: 'Logbooks Pending',
-              value: '${data.logbooksPending}',
-              icon: Icons.assignment_late_outlined,
-              iconColor: Colors.red,
-              actionLabel: 'Review Now',
-              onAction: () {
-                // TODO: navigate to logbook review once that feature exists
-              },
-            ),
+
             const SizedBox(height: 24),
             Text("Today's Schedule", style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
@@ -138,14 +105,20 @@ class MentorDashboardPage extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            AppCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  for (final item in data.recentActivity) _ActivityRow(item: item),
-                ],
+            if (data.recentActivity.isEmpty)
+              Text(
+                'No recent activity yet.',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              )
+            else
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    for (final item in data.recentActivity) _ActivityRow(item: item),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -187,13 +160,13 @@ class _ScheduleCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 12),
-            item.action == SessionAction.start
+            item.action == SessionAction.start && item.sessionId != null
                 ? SizedBox(
                     width: double.infinity,
                     child: AppButton(
                       label: 'Start Session (Video)',
                       onPressed: () {
-                        final sId = item.sessionId ?? 101;
+                        final sId = item.sessionId!;
                         launchJitsiMeeting(
                           context: context,
                           ref: ref,
@@ -260,6 +233,99 @@ class _ActivityRow extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MentorshipCycleCard extends StatelessWidget {
+  const _MentorshipCycleCard({this.cycle, this.fallbackName});
+
+  final MentorshipCycleInfo? cycle;
+  final String? fallbackName;
+
+  Widget _pill(String text) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final title = cycle?.name ?? fallbackName ?? 'Mentorship cycle';
+    final code = cycle?.code;
+    final thematic = cycle?.thematicArea;
+    final dateRange = cycle?.dateRangeText ?? '';
+    final students = cycle?.studentNames ?? const <String>[];
+    final status = cycle?.status ?? '';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12, bottom: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _pill(code != null && code.isNotEmpty ? 'CYCLE: $code' : 'ACTIVE CYCLE'),
+              if (status.isNotEmpty)
+                _pill('${status[0].toUpperCase()}${status.substring(1)}'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (thematic != null && thematic.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Thematic area: $thematic',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 12.5,
+              ),
+            ),
+          ],
+          if (dateRange.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              dateRange,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 12,
+              ),
+            ),
+          ],
+          if (students.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [for (final s in students) _pill(s)],
+            ),
+          ],
         ],
       ),
     );
