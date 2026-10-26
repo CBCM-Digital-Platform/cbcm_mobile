@@ -10,7 +10,6 @@ import '../../learning/domain/curriculum.dart';
 import '../../learning/presentation/curriculum_controller.dart';
 import '../../../auth/presentation/profile_menu_button.dart';
 import '../../../notifications/presentation/notification_bell.dart';
-import '../../../mentor/sessions/domain/session_model.dart';
 import '../../../mentor/sessions/presentation/mentor_sessions_page.dart';
 import '../../../mentor/sessions/presentation/schedule_session_sheet.dart';
 import '../../../mentor/sessions/presentation/meeting_launcher.dart';
@@ -37,14 +36,16 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
     final name = ref.watch(_userNameProvider);
     final curriculum = ref.watch(curriculumControllerProvider);
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8F6),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1F2937)),
+          icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -54,7 +55,7 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
           },
         ),
         actions: [
-          const NotificationBell(color: Color(0xFF1F2937)),
+          NotificationBell(color: theme.colorScheme.onSurface),
 
           // Icon 2: Profile menu
           const ProfileMenuButton(),

@@ -113,9 +113,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final avatarUser = isGroup || others.isEmpty ? null : others.first;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         titleSpacing: 0,
         title: Row(
@@ -276,13 +276,18 @@ class _Bubble extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: mine ? AppColors.primary : Colors.white,
+                  color: mine
+                      ? AppColors.primary
+                      : Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
                     bottomLeft: Radius.circular(mine ? 16 : 4),
                     bottomRight: Radius.circular(mine ? 4 : 16),
                   ),
+                  border: mine || Theme.of(context).brightness != Brightness.dark
+                      ? null
+                      : Border.all(color: Theme.of(context).dividerColor),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
@@ -293,7 +298,9 @@ class _Bubble extends StatelessWidget {
                 child: Text(
                   message.content,
                   style: TextStyle(
-                    color: mine ? Colors.white : Colors.black87,
+                    color: mine
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.onSurface,
                     height: 1.35,
                   ),
                 ),
@@ -365,9 +372,9 @@ class _AttachmentTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

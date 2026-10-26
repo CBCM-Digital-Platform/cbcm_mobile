@@ -26,13 +26,13 @@ class TimeSlot {
 
 /// The free start times for one day.
 class AvailableTimes {
-  const AvailableTimes({required this.slots, required this.checked});
+  const AvailableTimes({required this.slots, required this.checked, this.error});
 
   final List<TimeSlot> slots;
-
-  /// False when the server's answer could not be read or the request
-  /// failed. The slots are then empty and the screen shows a standard list.
   final bool checked;
+
+  /// The server's reason scheduling isn't possible (e.g. cycle not active).
+  final String? error;
 }
 
 abstract class SessionsRepository {

@@ -56,7 +56,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
     final conversations = ref.watch(conversationsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton(
         heroTag: 'conversations_fab',
         onPressed: _newMessage,
@@ -328,7 +328,7 @@ class _ConversationTile extends StatelessWidget {
     final hasUnread = conversation.unreadCount > 0;
 
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),

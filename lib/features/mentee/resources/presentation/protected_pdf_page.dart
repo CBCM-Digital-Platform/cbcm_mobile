@@ -5,7 +5,6 @@ import 'package:pdfrx/pdfrx.dart';
 import '../../../../core/audio/read_aloud_controller.dart';
 import '../../../../core/security/file_vault.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
-import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/read_aloud_bar.dart';
 import '../data/pdf_text.dart';
 
@@ -77,9 +76,9 @@ class _ProtectedPdfPageState extends ConsumerState<ProtectedPdfPage> {
     final reader = _reader;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),

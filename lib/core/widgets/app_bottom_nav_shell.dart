@@ -29,7 +29,13 @@ class AppBottomNavShell extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).dividerColor,
+              width: 0.5,
+            ),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
@@ -57,7 +63,8 @@ class AppBottomNavShell extends StatelessWidget {
 
   Widget _buildNavItem(BuildContext context, int index, NavItem item) {
     final isSelected = index == navigationShell.currentIndex;
-    final color = isSelected ? AppColors.primary : const Color(0xFF6B7280);
+    final unselectedColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final color = isSelected ? AppColors.primary : unselectedColor;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),

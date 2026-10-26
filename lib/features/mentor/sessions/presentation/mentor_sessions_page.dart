@@ -45,7 +45,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
     final sessionsAsync = ref.watch(mentorSessionsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Clinical Sessions',
@@ -54,7 +54,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: AppColors.primary,
         elevation: 0,
         actions: const [

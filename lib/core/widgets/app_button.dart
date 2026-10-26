@@ -80,13 +80,17 @@ class AppButton extends StatelessWidget {
             foregroundColor: WidgetStateProperty.resolveWith((states) {
               final active = states.contains(WidgetState.hovered) ||
                   states.contains(WidgetState.pressed);
-              return active ? AppColors.destructive : AppColors.textPrimary;
+              return active
+                  ? AppColors.destructive
+                  : Theme.of(context).colorScheme.onSurface;
             }),
             side: WidgetStateProperty.resolveWith((states) {
               final active = states.contains(WidgetState.hovered) ||
                   states.contains(WidgetState.pressed);
               return BorderSide(
-                color: active ? AppColors.destructive : AppColors.border,
+                color: active
+                    ? AppColors.destructive
+                    : Theme.of(context).dividerColor,
               );
             }),
           ),

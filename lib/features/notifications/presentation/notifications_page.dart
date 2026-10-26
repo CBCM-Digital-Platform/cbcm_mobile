@@ -22,9 +22,9 @@ class NotificationsPage extends ConsumerWidget {
     final async = ref.watch(notificationsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: const Text('Notifications'),
         actions: [
@@ -124,7 +124,9 @@ class _NotificationTile extends ConsumerWidget {
     final repo = ref.read(notificationsRepositoryProvider);
 
     return Material(
-      color: item.isRead ? Colors.white : AppColors.primary.withValues(alpha: 0.06),
+      color: item.isRead
+          ? Theme.of(context).colorScheme.surface
+          : AppColors.primary.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

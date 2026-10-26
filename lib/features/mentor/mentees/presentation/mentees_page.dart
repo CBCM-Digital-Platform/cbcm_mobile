@@ -7,6 +7,10 @@ import '../../../messaging/data/temporary_contacts.dart';
 import '../../../messaging/presentation/contact_picker.dart';
 import '../../sessions/presentation/schedule_session_sheet.dart';
 import '../data/assigned_mentees_provider.dart';
+import '../../../assessments/assessments_page.dart';
+import '../../../progress/presentation/mentee_progress_card.dart';
+import 'assign_resources_page.dart';
+import 'open_modules_page.dart';
 import 'share_material_page.dart';
 
 class MenteesPage extends ConsumerStatefulWidget {
@@ -32,7 +36,7 @@ class _MenteesPageState extends ConsumerState<MenteesPage> {
     final menteesAsync = ref.watch(assignedMenteesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -375,41 +379,6 @@ class _MenteeCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-
-              // Core Competency Progress
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Core Competency',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  Text(
-                    mentee.competencyPercentage > 0
-                        ? '${mentee.competencyPercentage}%'
-                        : 'No data yet',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: mentee.competencyPercentage / 100,
-                  minHeight: 6,
-                  backgroundColor: Colors.grey.shade200,
-                  color: AppColors.primary,
-                ),
-              ),
               const SizedBox(height: 16),
 
               // Clean 2-Row Action Buttons: Schedule full width on top, Message & Share side-by-side
@@ -581,66 +550,7 @@ class _MenteeCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Core Competency Score', style: TextStyle(fontSize: 13)),
-                        Text(
-                          mentee.competencyPercentage > 0
-                              ? '${mentee.competencyPercentage}%'
-                              : 'No data yet',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                    if (mentee.competencyPercentage > 0) ...[
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: mentee.competencyPercentage / 100,
-                          minHeight: 6,
-                          backgroundColor: Colors.grey.shade200,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Completed Modules', style: TextStyle(fontSize: 13)),
-                        Text('No data yet',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Quiz Performance', style: TextStyle(fontSize: 13)),
-                        Text(
-                          'No data yet',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              MenteeProgressCard(menteeId: mentee.id),
               const SizedBox(height: 16),
 
               // Assignments & Quizzes Section
@@ -721,6 +631,23 @@ class _MenteeCard extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: AppButton(
+                  label: 'Open modules',
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(
+                        builder: (_) => OpenModulesPage(
+                          menteeId: mentee.id,
+                          menteeName: mentee.fullName,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
                   label: 'Schedule Clinical Session',
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -733,36 +660,52 @@ class _MenteeCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: AppButton(
-                      label: 'Message',
+                      label: 'Assign resources',
                       variant: AppButtonVariant.secondary,
                       onPressed: () {
-                        Navigator.of(context).pop();
-                        if (mentee.messageUser != null) {
-                          openChatWith(context, ref, mentee.messageUser!);
-                        }
+                        Navigator.of(context, rootNavigator: true).push(
+                          MaterialPageRoute(
+                            builder: (_) => AssignResourcesPage(
+                              menteeId: mentee.id,
+                              menteeName: mentee.fullName,
+                            ),
+                          ),
+                        );
                       },
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: AppButton(
-                      label: 'Share Resource',
+                      label: 'Assessments',
                       variant: AppButtonVariant.secondary,
                       onPressed: () {
-                        Navigator.of(context).pop();
-                        if (mentee.messageUser != null) {
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute(
-                              builder: (_) => ShareMaterialPage(
-                                initialMentee: mentee.messageUser!,
-                              ),
+                        Navigator.of(context, rootNavigator: true).push(
+                          MaterialPageRoute(
+                            builder: (_) => AssessmentsPage(
+                              menteeId: mentee.id,
+                              menteeName: mentee.fullName,
                             ),
-                          );
-                        }
+                          ),
+                        );
                       },
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: 'Message',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    if (mentee.messageUser != null) {
+                      openChatWith(context, ref, mentee.messageUser!);
+                    }
+                  },
+                ),
               ),
             ],
           ),

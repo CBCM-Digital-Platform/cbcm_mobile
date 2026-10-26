@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../routing/app_routes.dart';
 import '../domain/curriculum.dart';
 import 'curriculum_controller.dart';
+import '../../../progress/presentation/my_progress_section.dart';
 
 class LearnPage extends ConsumerWidget {
   const LearnPage({super.key});
@@ -16,7 +17,7 @@ class LearnPage extends ConsumerWidget {
     final async = ref.watch(curriculumControllerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -70,20 +71,25 @@ class _LearnBody extends StatelessWidget {
           ),
         const SizedBox(height: 14),
         const _SectionTitle('Assignments & Quizzes'),
-        const AppCard(
-          child: Row(
-            children: [
-              Icon(Icons.assignment_outlined, color: Colors.grey),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Quizzes and assignments from your mentor will appear here.',
-                  style: TextStyle(color: Colors.grey),
+        GestureDetector(
+          onTap: () => context.push(AppRoutes.menteeQuiz),
+          child: AppCard(
+            child: Row(
+              children: [
+                Icon(Icons.quiz_outlined, color: AppColors.primary),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Practice quiz (sample)',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
-              ),
-            ],
+                const Icon(Icons.chevron_right),
+              ],
+            ),
           ),
         ),
+        const SizedBox(height: 24),
+        const _SectionTitle('My Competencies'),
+        const MyProgressSection(),
         const SizedBox(height: 24),
         const _SectionTitle('Resources'),
         GestureDetector(

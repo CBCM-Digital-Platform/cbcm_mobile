@@ -3,7 +3,6 @@ import '../../../../core/network/dio_provider.dart';
 import '../domain/sessions_repository.dart';
 import 'dio_sessions_repository.dart';
 
-final sessionsRepositoryProvider = Provider<SessionsRepository>((ref) {
-  final dio = ref.watch(dioProvider);
-  return DioSessionsRepository(dio);
-});
+final sessionsRepositoryProvider = Provider<SessionsRepository>(
+  (ref) => DioSessionsRepository(ref.watch(dioProvider)),
+);

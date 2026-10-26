@@ -15,12 +15,14 @@ import '../features/mentee/learning/presentation/lesson_reader_page.dart';
 import '../features/mentee/learning/presentation/module_detail_page.dart';
 import '../features/mentee/mentorship/presentation/my_mentor_page.dart';
 import '../features/mentee/presentation/mentee_shell.dart';
+import '../features/mentee/quizzes/presentation/quiz_page.dart';
 import '../features/mentee/resources/presentation/resources_page.dart';
 import '../features/mentor/dashboard/presentation/mentor_dashboard_page.dart';
 import '../features/mentor/mentees/presentation/mentees_page.dart';
 import '../features/mentor/presentation/mentor_shell.dart';
 import '../features/mentor/sessions/presentation/mentor_sessions_page.dart';
 import '../features/messaging/presentation/conversations_page.dart';
+import '../features/mentee/settings/presentation/settings_page.dart';
 import 'app_routes.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -82,6 +84,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ResetPasswordPage(),
       ),
       GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
         path: AppRoutes.moduleDetail,
         builder: (context, state) {
           final module = state.extra;
@@ -103,6 +109,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.menteeResources,
         builder: (context, state) => const ResourcesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.menteeQuiz,
+        builder: (context, state) => const QuizPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

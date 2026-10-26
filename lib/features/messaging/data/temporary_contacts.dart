@@ -4,6 +4,7 @@ import '../../auth/presentation/current_role_provider.dart';
 import '../../mentor/mentees/data/assigned_mentees_provider.dart';
 import '../domain/message_models.dart';
 import 'messaging_providers.dart';
+import '../../auth/domain/user_role.dart';
 
 /// Text shown when the user has nobody to message yet.
 String noContactsMessage() =>
@@ -39,7 +40,10 @@ final contactsProvider = Provider<List<MessageUser>>((ref) {
   final myId = ref.watch(currentUserIdProvider).value;
   final fromApi = ref.watch(contactsApiProvider).value ?? const <MessageUser>[];
   final conversations = ref.watch(conversationsProvider).value ?? const [];
-  final assignedMentees = ref.watch(assignedMenteesProvider).value ?? const [];
+  final isMentor = ref.watch(currentRoleProvider) == UserRole.mentor;
+  final assignedMentees = isMentor
+      ? (ref.watch(assignedMenteesProvider).value ?? const <AssignedMentee>[])
+      : const <AssignedMentee>[];
 
   final byId = <int, MessageUser>{};
 

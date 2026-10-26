@@ -82,9 +82,9 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
     final downloads = ref.watch(resourceDownloadsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: const Text('Resource Library'),
       ),

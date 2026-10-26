@@ -44,7 +44,7 @@ class MentorDashboardPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text('MidwifeMentor',
             style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: AppColors.primary,
         actions: [
           const NotificationBell(),

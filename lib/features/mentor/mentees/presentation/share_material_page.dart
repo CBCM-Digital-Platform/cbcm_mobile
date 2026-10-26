@@ -109,9 +109,9 @@ class _ShareMaterialPageState extends ConsumerState<ShareMaterialPage> {
     final canShare = _file != null && _selected.isNotEmpty && !_sharing;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: const Text('Share material'),
       ),

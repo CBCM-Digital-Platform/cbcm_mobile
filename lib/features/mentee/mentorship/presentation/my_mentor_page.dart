@@ -7,7 +7,7 @@ import '../../../messaging/data/temporary_contacts.dart';
 import '../../../messaging/domain/message_models.dart';
 import '../../../messaging/presentation/contact_picker.dart';
 import '../../../messaging/presentation/messaging_widgets.dart';
-import '../../../mentor/sessions/presentation/meeting_launcher.dart';
+import '../../../mentor/sessions/domain/session_model.dart';
 import '../../../mentor/sessions/presentation/mentor_sessions_page.dart';
 import '../../../mentor/sessions/presentation/schedule_session_sheet.dart';
 
@@ -25,7 +25,7 @@ class MyMentorPage extends ConsumerWidget {
     final sessionsAsync = ref.watch(menteeSessionsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -40,7 +40,7 @@ class MyMentorPage extends ConsumerWidget {
                 .catchError((_) => null);
             await ref
                 .read(menteeSessionsProvider.future)
-                .catchError((_) => []);
+                .catchError((_) => <SessionModel>[]);
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),

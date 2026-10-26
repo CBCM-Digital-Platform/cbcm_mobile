@@ -9,13 +9,15 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             Container(
-              color: Colors.white,
+              color: theme.colorScheme.surface,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -61,7 +63,7 @@ class WelcomePage extends StatelessWidget {
                             'CATCHMENT-BASED CLINICAL MENTORSHIP',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: const Color(0xFF4C6A4F),
+                              color: AppColors.primaryLight,
                               fontWeight: FontWeight.bold,
                               fontSize: 11.5,
                               letterSpacing: 0.8,
@@ -71,13 +73,10 @@ class WelcomePage extends StatelessWidget {
                           Text(
                             'Midwife Mentorship',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
-                                ?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 14),
                           Text(
@@ -85,13 +84,10 @@ class WelcomePage extends StatelessWidget {
                             'your competencies, identify learning gaps, and '
                             'continue developing your clinical practice.',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: const Color(0xFF555555),
-                                  height: 1.45,
-                                ),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.45,
+                            ),
                           ),
                           const SizedBox(height: 28),
                           AppButton(

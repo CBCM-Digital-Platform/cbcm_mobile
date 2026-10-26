@@ -133,7 +133,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     final hasRemembered = ref.watch(pendingPasswordProvider) != null;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

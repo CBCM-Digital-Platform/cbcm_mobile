@@ -8,4 +8,5 @@ class StorageKeys {
   static const userName = 'user_name';
   static const userEmail = 'user_email';
     static const mustChangePassword = 'must_change_password';
+  static const themeMode = 'theme_mode';
 }

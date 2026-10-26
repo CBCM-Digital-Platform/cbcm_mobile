@@ -17,6 +17,8 @@ class MetricTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mutedColor = Theme.of(context).colorScheme.onSurfaceVariant;
+
     return AppCard(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -27,8 +29,8 @@ class MetricTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(label.toUpperCase(),
-                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              if (icon != null) Icon(icon, size: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 11, color: mutedColor)),
+              if (icon != null) Icon(icon, size: 16, color: mutedColor),
             ],
           ),
           const SizedBox(height: 6),
@@ -37,7 +39,7 @@ class MetricTile extends StatelessWidget {
                   fontWeight: FontWeight.bold, fontSize: 18)),
           if (caption != null) ...[
             const SizedBox(height: 2),
-            Text(caption!, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            Text(caption!, style: TextStyle(fontSize: 11, color: mutedColor)),
           ],
         ],
       ),

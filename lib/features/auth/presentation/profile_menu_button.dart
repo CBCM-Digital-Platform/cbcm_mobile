@@ -1,14 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/security/offline_access.dart';
 import '../../../core/storage/secure_storage_provider.dart';
 import '../../../core/storage/storage_keys.dart';
 import '../../../core/theme/colors.dart';
+import '../../../routing/app_routes.dart';
 import 'logout_dialog.dart';
 
 /// The profile avatar shown in the top bar of both Mentee and Mentor.
-/// Add future account items (e.g. "Profile", "Settings") to the menu here.
 class ProfileMenuButton extends ConsumerWidget {
   const ProfileMenuButton({super.key});
 
@@ -18,7 +19,9 @@ class ProfileMenuButton extends ConsumerWidget {
       tooltip: 'Account',
       offset: const Offset(0, 44),
       onSelected: (value) async {
-        if (value == 'logout') {
+        if (value == 'settings') {
+          context.push(AppRoutes.settings);
+        } else if (value == 'logout') {
           confirmAndLogout(context, ref);
         } else if (value == 'expire') {
           await ref
@@ -45,6 +48,16 @@ class ProfileMenuButton extends ConsumerWidget {
         }
       },
       itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: 'settings',
+          child: Row(
+            children: [
+              Icon(Icons.settings_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('Settings'),
+            ],
+          ),
+        ),
         const PopupMenuItem(
           value: 'logout',
           child: Row(

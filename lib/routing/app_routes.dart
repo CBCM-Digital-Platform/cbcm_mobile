@@ -1,10 +1,11 @@
 class AppRoutes {
   AppRoutes._();
 
-  // Public
+  // Public / Shared
   static const home = '/';
   static const login = '/login';
   static const resetPassword = '/reset-password';
+  static const settings = '/settings';
 
   // Mentee (inside the bottom navigation bar)
   static const menteeDashboard = '/mentee/dashboard';
@@ -17,6 +18,7 @@ class AppRoutes {
   static const moduleDetail = '/mentee/module-detail';
   static const lessonReader = '/mentee/lesson-reader';
   static const menteeResources = '/mentee/resources';
+  static const menteeQuiz = '/mentee/quiz';
 
   // Mentor (inside the bottom navigation bar)
   static const mentorDashboard = '/mentor/dashboard';

@@ -24,6 +24,7 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mutedColor = Theme.of(context).colorScheme.onSurfaceVariant;
     final card = AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,8 +32,8 @@ class StatCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(color: Colors.grey)),
-              if (icon != null) Icon(icon, color: iconColor ?? Colors.grey),
+              Text(label, style: TextStyle(color: mutedColor)),
+              if (icon != null) Icon(icon, color: iconColor ?? mutedColor),
             ],
           ),
           const SizedBox(height: 8),

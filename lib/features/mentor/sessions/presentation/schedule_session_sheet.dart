@@ -1,64 +1,16 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
-import '../../../../core/network/dio_error_mapper.dart';
-import '../../../../core/network/dio_provider.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../auth/domain/user_role.dart';
 import '../../../auth/presentation/current_role_provider.dart';
-import '../../../messaging/data/messaging_providers.dart';
 import '../../../messaging/data/temporary_contacts.dart';
 import '../../../notifications/data/notifications_repository.dart';
+import '../data/assignments_provider.dart';
 import '../data/sessions_repository_provider.dart';
 import '../domain/sessions_repository.dart';
 import 'mentor_sessions_page.dart';
-
-/// The signed-in user's active assignments: a mentor's mentees, or a
-/// mentee's mentor(s).
-final mentorAssignmentsProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final role = ref.watch(currentRoleProvider);
-  final userId = await ref.watch(currentUserIdProvider.future);
-  if (role == null || userId == null) return const [];
-
-  final path = role == UserRole.mentor
-      ? ApiEndpoints.mentorAssignments(userId)
-      : ApiEndpoints.menteeAssignments(userId);
-
-  try {
-    final r = await ref.watch(dioProvider).get(path);
-    return _extractAssignmentList(r.data)
-        .whereType<Map>()
-        .map((m) => Map<String, dynamic>.from(m))
-        .where((a) {
-      final status = a['status']?.toString();
-      return status == null || status == 'assigned';
-    }).toList();
-  } on DioException catch (e) {
-    throw apiExceptionFromDio(e);
-  }
-});
-
-List<dynamic> _extractAssignmentList(dynamic raw) {
-  if (raw == null) return [];
-  if (raw is List) return raw;
-  if (raw is Map) {
-    final data = raw['data'] ?? raw;
-    if (data is List) return data;
-    if (data is Map) {
-      for (final key in ['items', 'assignments']) {
-        if (data[key] is List) return data[key] as List;
-      }
-    }
-    for (final key in ['items', 'assignments']) {
-      if (raw[key] is List) return raw[key] as List;
-    }
-  }
-  return [];
-}
 
 class ScheduleSessionSheet extends ConsumerStatefulWidget {
   const ScheduleSessionSheet({
@@ -245,8 +197,10 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
       }
     }
 
-    final canSubmit =
-        effectiveId != null && _selectedSlot != null && !_isSubmitting;
+    final canSubmit = effectiveId != null &&
+        _selectedSlot != null &&
+        !_isSubmitting &&
+        _times?.error == null;
 
     return Container(
       decoration: const BoxDecoration(
@@ -494,6 +448,11 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
           ),
         ),
       );
+    }
+        final error = _times!.error;
+    if (error != null) {
+      return Text(error,
+          style: TextStyle(color: Colors.red.shade700, fontSize: 13));
     }
 
     final slots = _visibleSlots();

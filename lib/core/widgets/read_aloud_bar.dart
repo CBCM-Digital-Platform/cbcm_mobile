@@ -149,7 +149,7 @@ class _ReadAloudBarState extends State<ReadAloudBar> {
 
         return Material(
           elevation: 8,
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: widget.safeBottom
               ? SafeArea(top: false, child: content)
               : content,
