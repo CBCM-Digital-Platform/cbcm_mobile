@@ -6,6 +6,7 @@ class AppRoutes {
   static const login = '/login';
   static const resetPassword = '/reset-password';
   static const settings = '/settings';
+  static const profile = '/profile';
 
   // Mentee (inside the bottom navigation bar)
   static const menteeDashboard = '/mentee/dashboard';

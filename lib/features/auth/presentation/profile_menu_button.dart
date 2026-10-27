@@ -19,7 +19,9 @@ class ProfileMenuButton extends ConsumerWidget {
       tooltip: 'Account',
       offset: const Offset(0, 44),
       onSelected: (value) async {
-        if (value == 'settings') {
+        if (value == 'profile') {
+          context.push(AppRoutes.profile);
+        } else if (value == 'settings') {
           context.push(AppRoutes.settings);
         } else if (value == 'logout') {
           confirmAndLogout(context, ref);
@@ -48,6 +50,16 @@ class ProfileMenuButton extends ConsumerWidget {
         }
       },
       itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: 'profile',
+          child: Row(
+            children: [
+              Icon(Icons.person_outline, size: 20),
+              SizedBox(width: 12),
+              Text('Profile'),
+            ],
+          ),
+        ),
         const PopupMenuItem(
           value: 'settings',
           child: Row(

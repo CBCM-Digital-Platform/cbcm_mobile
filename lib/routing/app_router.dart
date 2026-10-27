@@ -23,6 +23,7 @@ import '../features/mentor/presentation/mentor_shell.dart';
 import '../features/mentor/sessions/presentation/mentor_sessions_page.dart';
 import '../features/messaging/presentation/conversations_page.dart';
 import '../features/mentee/settings/presentation/settings_page.dart';
+import '../features/profile/presentation/profile_page.dart';
 import 'app_routes.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -86,6 +87,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settings,
         builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const ProfilePage(),
       ),
       GoRoute(
         path: AppRoutes.moduleDetail,

@@ -10,8 +10,8 @@ import '../data/resource_providers.dart';
 import '../domain/learning_resource.dart';
 import 'protected_pdf_page.dart';
 
-Future<void> _showAccessDialog(BuildContext context) async {
-  await showDialog<void>(
+Future<void> _showAccessDialog(BuildContext context) {
+  return showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const Text('Verify your access'),
@@ -118,7 +118,6 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
   Widget build(BuildContext context) {
     final async = ref.watch(resourcesControllerProvider);
     final downloads = ref.watch(resourceDownloadsProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -135,35 +134,17 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
             const _AccessBanner(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                  ),
-                ),
-                child: TextField(
-                  style: TextStyle(
-                    color: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                    fontSize: 14,
-                  ),
-                  onChanged: (v) => setState(() => _query = v),
-                  decoration: InputDecoration(
-                    hintText: 'Search resources...',
-                    hintStyle: TextStyle(
-                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
-                      fontSize: 14,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
+              child: TextField(
+                onChanged: (v) => setState(() => _query = v),
+                decoration: InputDecoration(
+                  hintText: 'Search resources...',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.grey.shade200,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
@@ -220,11 +201,14 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
 
                   if (shown.isEmpty) {
                     return Center(
-                      child: Text(_starredOnly
-                          ? 'No starred resources yet. Tap the star on a resource.'
-                          : _downloadedOnly
-                              ? 'Nothing downloaded yet.'
-                              : 'Nothing here yet. Your mentor assigns resources to you.'),
+                      child: Text(
+                        _starredOnly
+                            ? 'No starred resources yet. Tap the star on a resource.'
+                            : _downloadedOnly
+                                ? 'Nothing downloaded yet.'
+                                : 'Nothing here yet. Your mentor assigns resources to you.',
+                        textAlign: TextAlign.center,
+                      ),
                     );
                   }
                   return ListView.separated(
@@ -243,42 +227,17 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
   }
 
   Widget _chip(String label, bool selected, VoidCallback onTap) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: selected
-            ? AppColors.primary
-            : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100),
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          splashColor: AppColors.primary.withValues(alpha: 0.2),
-          highlightColor: AppColors.primary.withValues(alpha: 0.1),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: selected
-                    ? AppColors.primary
-                    : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                width: 1.2,
-              ),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected
-                    ? Colors.white
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-              ),
-            ),
-          ),
-        ),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        selectedColor: AppColors.primary,
+        backgroundColor: Colors.grey.shade200,
+        labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87),
+        side: BorderSide.none,
+        onSelected: (_) => onTap(),
       ),
     );
   }
@@ -394,14 +353,10 @@ class _ResourceTile extends ConsumerWidget {
           icon: const Icon(Icons.refresh, color: Colors.red),
         );
       case DownloadStatus.none:
-        final isDark = Theme.of(context).brightness == Brightness.dark;
         return IconButton(
           tooltip: 'Download',
           onPressed: () => _start(context, ref),
-          icon: Icon(
-            Icons.download_outlined,
-            color: isDark ? AppColors.darkTextSecondary : null,
-          ),
+          icon: const Icon(Icons.download_outlined),
         );
     }
   }
@@ -411,7 +366,6 @@ class _ResourceTile extends ConsumerWidget {
     final info =
         ref.watch(resourceDownloadsProvider)[resource.id] ?? const DownloadInfo();
     final downloaded = info.status == DownloadStatus.downloaded;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     VoidCallback? onTap;
     if (downloaded) {
@@ -440,23 +394,15 @@ class _ResourceTile extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    resource.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                    ),
-                  ),
+                  Text(resource.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text(
                     '${resource.category} • ${resource.sizeLabel}'
                     '${downloaded ? ' • Available offline' : ''}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   if (info.status == DownloadStatus.failed)
                     Text(info.error ?? 'Download failed.',
@@ -471,9 +417,7 @@ class _ResourceTile extends ConsumerWidget {
                   .toggleStar(resource.id),
               icon: Icon(
                 resource.isStarred ? Icons.star : Icons.star_border,
-                color: resource.isStarred
-                    ? AppColors.pageIndicator
-                    : (isDark ? AppColors.darkTextSecondary : Colors.grey),
+                color: resource.isStarred ? AppColors.pageIndicator : Colors.grey,
               ),
             ),
             _action(context, ref, info),

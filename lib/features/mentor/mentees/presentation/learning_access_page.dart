@@ -65,19 +65,43 @@ class LearningAccessPage extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            OpenModulesPage(
-              menteeId: menteeId,
-              menteeName: menteeName,
-              embedded: true,
+            _KeepAliveTab(
+              child: OpenModulesPage(
+                menteeId: menteeId,
+                menteeName: menteeName,
+                embedded: true,
+              ),
             ),
-            AssignResourcesPage(
-              menteeId: menteeId,
-              menteeName: menteeName,
-              embedded: true,
+            _KeepAliveTab(
+              child: AssignResourcesPage(
+                menteeId: menteeId,
+                menteeName: menteeName,
+                embedded: true,
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _KeepAliveTab extends StatefulWidget {
+  const _KeepAliveTab({required this.child});
+  final Widget child;
+
+  @override
+  State<_KeepAliveTab> createState() => _KeepAliveTabState();
+}
+
+class _KeepAliveTabState extends State<_KeepAliveTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

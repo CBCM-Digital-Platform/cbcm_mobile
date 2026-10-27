@@ -8,7 +8,10 @@ import '../../../mentee/resources/data/resource_providers.dart';
 import '../../../mentee/resources/domain/learning_resource.dart';
 
 final _catalogProvider = FutureProvider.autoDispose<List<LearningResource>>(
-  (ref) => ref.watch(resourceRepositoryProvider).getResources(),
+  (ref) {
+    ref.keepAlive();
+    return ref.watch(resourceRepositoryProvider).getResources();
+  },
 );
 
 class AssignResourcesPage extends ConsumerStatefulWidget {
@@ -26,7 +29,11 @@ class AssignResourcesPage extends ConsumerStatefulWidget {
   ConsumerState<AssignResourcesPage> createState() => _State();
 }
 
-class _State extends ConsumerState<AssignResourcesPage> {
+class _State extends ConsumerState<AssignResourcesPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   late final Set<String> _selected = {
     ...ref.read(resourceAssignmentsProvider.notifier).idsFor(widget.menteeId),
   };
@@ -42,6 +49,7 @@ class _State extends ConsumerState<AssignResourcesPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final catalog = ref.watch(_catalogProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

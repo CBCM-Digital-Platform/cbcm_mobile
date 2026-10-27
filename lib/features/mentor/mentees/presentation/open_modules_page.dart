@@ -5,11 +5,17 @@ import '../../../../core/theme/colors.dart';
 import '../data/module_access_repository.dart';
 
 final _modulesProvider = FutureProvider.autoDispose<List<LearningModuleRef>>(
-  (ref) => ref.watch(moduleAccessRepositoryProvider).modules(),
+  (ref) {
+    ref.keepAlive();
+    return ref.watch(moduleAccessRepositoryProvider).modules();
+  },
 );
 
 final _grantedProvider = FutureProvider.autoDispose.family<Set<int>, int>(
-  (ref, menteeId) => ref.watch(moduleAccessRepositoryProvider).grantedTo(menteeId),
+  (ref, menteeId) {
+    ref.keepAlive();
+    return ref.watch(moduleAccessRepositoryProvider).grantedTo(menteeId);
+  },
 );
 
 String _msg(Object e) =>
@@ -30,7 +36,11 @@ class OpenModulesPage extends ConsumerStatefulWidget {
   ConsumerState<OpenModulesPage> createState() => _OpenModulesPageState();
 }
 
-class _OpenModulesPageState extends ConsumerState<OpenModulesPage> {
+class _OpenModulesPageState extends ConsumerState<OpenModulesPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final _local = <int, bool>{};
   final _busy = <int>{};
 
@@ -58,6 +68,7 @@ class _OpenModulesPageState extends ConsumerState<OpenModulesPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final modules = ref.watch(_modulesProvider);
     final granted = ref.watch(_grantedProvider(widget.menteeId));
     final isDark = Theme.of(context).brightness == Brightness.dark;

@@ -70,16 +70,25 @@ class ProgressRepository {
     }
   }
 
-  /// Names for thematic areas. Empty if the user isn't allowed to list them.
+  /// Names come from the cycles' thematic areas (any signed-in user may
+  /// read them), because GET /thematic-areas is administrators only.
   Future<Map<int, String>> thematicAreaNames() async {
     try {
-      final d = _unwrap((await _dio.get('/thematic-areas')).data);
-      final list = d is Map ? (d['items'] ?? d['thematic_areas']) : d;
-      return {
-        for (final m in _maps(list))
-          if (_num(m['id']) != null)
-            _num(m['id'])!.toInt(): (m['name'] ?? m['title'] ?? '').toString(),
-      };
+      final raw = _unwrap((await _dio.get('/mentorship-cycles')).data);
+      final cycles = _maps(raw is Map ? raw['items'] : raw);
+      final names = <int, String>{};
+      for (final c in cycles.take(3)) {
+        final id = _num(c['id'])?.toInt();
+        if (id == null) continue;
+        try {
+          final r = await _dio.get('/mentorship-cycles/$id/thematic-areas');
+          for (final a in _maps(_unwrap(r.data))) {
+            final aid = _num(a['id'])?.toInt();
+            if (aid != null) names[aid] = (a['name'] ?? a['code'] ?? '').toString();
+          }
+        } catch (_) {}
+      }
+      return names;
     } catch (_) {
       return const {};
     }
