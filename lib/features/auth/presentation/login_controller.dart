@@ -6,6 +6,8 @@ import '../../../core/storage/secure_storage_provider.dart';
 import '../../../core/storage/storage_keys.dart';
 import '../../messaging/data/messaging_providers.dart';
 import '../../messaging/data/temporary_contacts.dart';
+import '../../mentor/mentees/data/assigned_mentees_provider.dart';
+import '../../mentor/sessions/data/assignments_provider.dart';
 import '../data/auth_repository_provider.dart';
 import '../domain/user.dart';
 import 'current_role_provider.dart';
@@ -84,6 +86,8 @@ class LoginController extends Notifier<LoginState> {
       ref.invalidate(currentUserIdProvider);
       ref.invalidate(conversationsProvider);
       ref.invalidate(contactsApiProvider);
+      ref.invalidate(assignedMenteesProvider);
+      ref.invalidate(mentorAssignmentsProvider);
 
       // Not awaited: login should not wait for this bookkeeping.
       ref.read(offlineAccessProvider.notifier).markVerified();

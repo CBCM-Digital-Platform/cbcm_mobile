@@ -52,7 +52,8 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final myId = ref.watch(currentUserIdProvider).value;
+    final idAsync = ref.watch(currentUserIdProvider);
+    final myId = idAsync.isLoading ? null : idAsync.value;
     final conversations = ref.watch(conversationsProvider);
 
     return Scaffold(

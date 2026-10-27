@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/secure_storage_provider.dart';
 import '../../../core/storage/storage_keys.dart';
 import '../domain/user_role.dart';
+import '../../messaging/data/messaging_providers.dart';
 import 'must_change_password_provider.dart';
 import 'pending_password_provider.dart';
 
@@ -30,6 +31,7 @@ class CurrentRoleNotifier extends Notifier<UserRole?> {
 
     // Leave protected screens immediately, then clean up.
     state = null;
+    ref.invalidate(currentUserIdProvider);
     ref.read(pendingPasswordProvider.notifier).clear();
     ref.read(mustChangePasswordProvider.notifier).set(false);
 

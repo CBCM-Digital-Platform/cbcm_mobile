@@ -9,7 +9,8 @@ class MyProgressSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final id = ref.watch(currentUserIdProvider).value;
+    final a = ref.watch(currentUserIdProvider);
+    final id = a.isLoading ? null : a.value;
     if (id == null) return const SizedBox.shrink();
     return MenteeProgressCard(menteeId: id);
   }

@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/domain/user_role.dart';
 import '../../auth/presentation/current_role_provider.dart';
 import '../../mentor/mentees/data/assigned_mentees_provider.dart';
 import '../domain/message_models.dart';
 import 'messaging_providers.dart';
-import '../../auth/domain/user_role.dart';
 
 /// Text shown when the user has nobody to message yet.
 String noContactsMessage() =>
@@ -37,7 +37,8 @@ final assignedMentorProvider = FutureProvider<MessageUser?>((ref) async {
 /// Everyone the user may message: server contacts, assigned mentees, and
 /// anyone they already chat with.
 final contactsProvider = Provider<List<MessageUser>>((ref) {
-  final myId = ref.watch(currentUserIdProvider).value;
+  final idAsync = ref.watch(currentUserIdProvider);
+  final myId = idAsync.isLoading ? null : idAsync.value;
   final fromApi = ref.watch(contactsApiProvider).value ?? const <MessageUser>[];
   final conversations = ref.watch(conversationsProvider).value ?? const [];
   final isMentor = ref.watch(currentRoleProvider) == UserRole.mentor;

@@ -90,7 +90,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final myId = ref.watch(currentUserIdProvider).value;
+    final idAsync = ref.watch(currentUserIdProvider);
+    final myId = idAsync.isLoading ? null : idAsync.value;
     final async = ref.watch(conversationProvider(widget.conversationId));
 
     ref.listen<AsyncValue<Conversation>>(

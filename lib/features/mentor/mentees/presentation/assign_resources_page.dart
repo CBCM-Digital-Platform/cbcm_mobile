@@ -16,9 +16,11 @@ class AssignResourcesPage extends ConsumerStatefulWidget {
     super.key,
     required this.menteeId,
     required this.menteeName,
+    this.embedded = false,
   });
   final int menteeId;
   final String menteeName;
+  final bool embedded;
 
   @override
   ConsumerState<AssignResourcesPage> createState() => _State();
@@ -26,7 +28,7 @@ class AssignResourcesPage extends ConsumerStatefulWidget {
 
 class _State extends ConsumerState<AssignResourcesPage> {
   late final Set<String> _selected = {
-    ...?ref.read(resourceAssignmentsProvider)[widget.menteeId],
+    ...ref.read(resourceAssignmentsProvider.notifier).idsFor(widget.menteeId),
   };
   String? _area;
 
@@ -43,15 +45,7 @@ class _State extends ConsumerState<AssignResourcesPage> {
     final catalog = ref.watch(_catalogProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        title: Text('Assign to ${widget.menteeName}',
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-      ),
-      body: catalog.when(
+    final body = catalog.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => const Center(child: Text('Could not load resources.')),
         data: (all) {
@@ -180,7 +174,21 @@ class _State extends ConsumerState<AssignResourcesPage> {
             ],
           );
         },
+      );
+
+    if (widget.embedded) {
+      return body;
+    }
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: Text('Assign to ${widget.menteeName}',
+            maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
+      body: body,
     );
   }
 }

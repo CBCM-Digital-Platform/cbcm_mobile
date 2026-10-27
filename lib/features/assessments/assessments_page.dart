@@ -17,7 +17,8 @@ class AssessmentsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final myId = ref.watch(currentUserIdProvider).value;
+    final a = ref.watch(currentUserIdProvider);
+    final myId = a.isLoading ? null : a.value;
     final id = menteeId ?? myId;
     final isMentor = menteeId != null;
 

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/domain/user_role.dart';
+import '../../../auth/presentation/current_role_provider.dart';
 import '../../sessions/data/assignments_provider.dart';
 import '../../../messaging/data/temporary_contacts.dart';
 import '../../../messaging/domain/message_models.dart';
@@ -38,6 +40,9 @@ class AssignedMentee {
 /// missing value stays empty or zero.
 final assignedMenteesProvider =
     FutureProvider.autoDispose<List<AssignedMentee>>((ref) async {
+  final role = ref.watch(currentRoleProvider);
+  if (role != UserRole.mentor) return const <AssignedMentee>[];
+
   // Start loading names while the assignments request is in flight.
   final contactsFuture = ref
       .watch(contactsApiProvider.future)

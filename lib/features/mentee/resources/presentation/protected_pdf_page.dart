@@ -14,11 +14,15 @@ class ProtectedPdfPage extends ConsumerStatefulWidget {
   const ProtectedPdfPage({
     super.key,
     required this.title,
-    required this.encryptedPath,
+    this.encryptedPath,
+    this.bytes,
+    this.resourceId,
   });
 
   final String title;
-  final String encryptedPath;
+  final String? encryptedPath; // a downloaded (encrypted) file
+  final Uint8List? bytes; // or a PDF streamed into memory
+  final String? resourceId;
 
   @override
   ConsumerState<ProtectedPdfPage> createState() => _ProtectedPdfPageState();
@@ -32,9 +36,9 @@ class _ProtectedPdfPageState extends ConsumerState<ProtectedPdfPage> {
   /// Identifies this document for saving the reading position (the stored
   /// file is named "<resource id>.enc").
   String get _resourceKey {
-    final name = widget.encryptedPath.replaceAll('\\', '/').split('/').last;
-    final id = name.endsWith('.enc') ? name.substring(0, name.length - 4) : name;
-    return 'pdf:$id';
+    if (widget.resourceId != null) return 'pdf:${widget.resourceId}';
+    final name = widget.encryptedPath!.replaceAll('\\', '/').split('/').last;
+    return 'pdf:${name.endsWith('.enc') ? name.substring(0, name.length - 4) : name}';
   }
 
   @override
@@ -45,8 +49,8 @@ class _ProtectedPdfPageState extends ConsumerState<ProtectedPdfPage> {
 
   Future<void> _load() async {
     try {
-      final bytes =
-          await ref.read(fileVaultProvider).decryptFile(widget.encryptedPath);
+      final bytes = widget.bytes ??
+          await ref.read(fileVaultProvider).decryptFile(widget.encryptedPath!);
       if (!mounted) return;
       setState(() {
         _bytes = bytes;

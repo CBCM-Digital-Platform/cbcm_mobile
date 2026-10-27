@@ -9,8 +9,7 @@ import '../../sessions/presentation/schedule_session_sheet.dart';
 import '../data/assigned_mentees_provider.dart';
 import '../../../assessments/assessments_page.dart';
 import '../../../progress/presentation/mentee_progress_card.dart';
-import 'assign_resources_page.dart';
-import 'open_modules_page.dart';
+import 'learning_access_page.dart';
 import 'share_material_page.dart';
 
 class MenteesPage extends ConsumerStatefulWidget {
@@ -432,7 +431,7 @@ class _MenteeCard extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              // Clean 2-Row Action Buttons: Schedule full width on top, Message & Share side-by-side
+              // Action Buttons: Schedule full width on top, Message full width below
               SizedBox(
                 width: double.infinity,
                 child: AppButton(
@@ -441,38 +440,17 @@ class _MenteeCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      label: 'Message',
-                      variant: AppButtonVariant.secondary,
-                      onPressed: () {
-                        if (mentee.messageUser != null) {
-                          openChatWith(context, ref, mentee.messageUser!);
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: AppButton(
-                      label: 'Share Resource',
-                      variant: AppButtonVariant.secondary,
-                      onPressed: () {
-                        if (mentee.messageUser != null) {
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute(
-                              builder: (_) => ShareMaterialPage(
-                                initialMentee: mentee.messageUser!,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ],
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: 'Message',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () {
+                    if (mentee.messageUser != null) {
+                      openChatWith(context, ref, mentee.messageUser!);
+                    }
+                  },
+                ),
               ),
             ],
           ),
@@ -662,73 +640,17 @@ class _MenteeCard extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              // Assignment & Quiz Actions (Disabled with Coming soon)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(
-                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                        ),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: Icon(
-                        Icons.add_task,
-                        size: 18,
-                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
-                      ),
-                      label: Text(
-                        'Assign Task (Coming soon)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
-                        ),
-                      ),
-                      onPressed: null,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(
-                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                        ),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: Icon(
-                        Icons.quiz_outlined,
-                        size: 18,
-                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
-                      ),
-                      label: Text(
-                        'Assign Quiz (Coming soon)',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
-                        ),
-                      ),
-                      onPressed: null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
               // Action Buttons
               SizedBox(
                 width: double.infinity,
                 child: AppButton(
-                  label: 'Open modules',
+                  label: 'Learning access',
                   onPressed: () {
                     Navigator.of(context, rootNavigator: true).push(
                       MaterialPageRoute(
-                        builder: (_) => OpenModulesPage(
-                          menteeId: mentee.id,
-                          menteeName: mentee.fullName,
+                        builder: (_) => LearningAccessPage(
+                          mentee.id,
+                          mentee.fullName,
                         ),
                       ),
                     );
@@ -751,23 +673,6 @@ class _MenteeCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: AppButton(
-                      label: 'Assign resources',
-                      variant: AppButtonVariant.secondary,
-                      onPressed: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(
-                            builder: (_) => AssignResourcesPage(
-                              menteeId: mentee.id,
-                              menteeName: mentee.fullName,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: AppButton(
                       label: 'Assessments',
                       variant: AppButtonVariant.secondary,
                       onPressed: () {
@@ -782,21 +687,20 @@ class _MenteeCard extends ConsumerWidget {
                       },
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppButton(
+                      label: 'Message',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        if (mentee.messageUser != null) {
+                          openChatWith(context, ref, mentee.messageUser!);
+                        }
+                      },
+                    ),
+                  ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: 'Message',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    if (mentee.messageUser != null) {
-                      openChatWith(context, ref, mentee.messageUser!);
-                    }
-                  },
-                ),
               ),
             ],
           ),
@@ -805,263 +709,4 @@ class _MenteeCard extends ConsumerWidget {
     },
   );
 }
-
-  void _showAssignTaskDialog(BuildContext context, WidgetRef ref, AssignedMentee mentee) {
-    final titleController = TextEditingController(text: 'Clinical Case Study: Maternal Hemorrhage Protocol');
-    final descController = TextEditingController(text: 'Review patient assessment checklist, triage decision matrix, and emergency response procedures.');
-    DateTime dueDate = DateTime.now().add(const Duration(days: 7));
-
-    showDialog(
-      context: context,
-      builder: (dlgContext) => StatefulBuilder(
-        builder: (context, setDlgState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Row(
-            children: [
-              Icon(Icons.add_task, color: AppColors.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Assign Task to ${mentee.fullName}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Assignment Title', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text('Instructions / Objectives', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: descController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Due Date', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${dueDate.year}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? AppColors.darkTextSecondary
-                                : Colors.grey.shade700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: const Text('Change'),
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: dueDate,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (picked != null) {
-                          setDlgState(() => dueDate = picked);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dlgContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () {
-                Navigator.of(dlgContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Assignment assigned to ${mentee.fullName} successfully!'),
-                    backgroundColor: Colors.green.shade700,
-                  ),
-                );
-              },
-              child: const Text('Issue Assignment'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAssignQuizDialog(BuildContext context, WidgetRef ref, AssignedMentee mentee) {
-    String selectedQuiz = 'Emergency Obstetric Care (EmOC)';
-    String passingScore = '80%';
-
-    showDialog(
-      context: context,
-      builder: (dlgContext) => StatefulBuilder(
-        builder: (context, setDlgState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Row(
-            children: [
-              Icon(Icons.quiz_outlined, color: AppColors.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Assign Quiz to ${mentee.fullName}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Select Clinical Quiz / Assessment', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedQuiz,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'Emergency Obstetric Care (EmOC)',
-                      child: Text('Emergency Obstetric Care (EmOC)', style: TextStyle(fontSize: 13)),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Partograph & Labor Monitoring',
-                      child: Text('Partograph & Labor Monitoring', style: TextStyle(fontSize: 13)),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Neonatal Resuscitation Protocol',
-                      child: Text('Neonatal Resuscitation Protocol', style: TextStyle(fontSize: 13)),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Infection Prevention & Sterile Field',
-                      child: Text('Infection Prevention & Sterile Field', style: TextStyle(fontSize: 13)),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setDlgState(() => selectedQuiz = val);
-                  },
-                ),
-                const SizedBox(height: 14),
-                const Text('Passing Threshold', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: passingScore,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: '70%', child: Text('70% (Standard)')),
-                    DropdownMenuItem(value: '80%', child: Text('80% (Clinical Mastery)')),
-                    DropdownMenuItem(value: '90%', child: Text('90% (Distinction)')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setDlgState(() => passingScore = val);
-                  },
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF1E3A5F)
-                        : Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF2563EB)
-                          : Colors.blue.shade100,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 18,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF93C5FD)
-                            : Colors.blue.shade700,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${mentee.fullName} will be notified immediately to take this quiz before their next scheduled clinical review.',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF93C5FD)
-                                : Colors.blue.shade900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dlgContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () {
-                Navigator.of(dlgContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Quiz "$selectedQuiz" assigned to ${mentee.fullName}!'),
-                    backgroundColor: Colors.green.shade700,
-                  ),
-                );
-              },
-              child: const Text('Assign Quiz'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

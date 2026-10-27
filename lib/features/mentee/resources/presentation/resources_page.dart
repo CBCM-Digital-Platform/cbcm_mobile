@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/security/offline_access.dart';
@@ -7,6 +9,25 @@ import '../data/resource_downloads.dart';
 import '../data/resource_providers.dart';
 import '../domain/learning_resource.dart';
 import 'protected_pdf_page.dart';
+
+Future<void> _showAccessDialog(BuildContext context) async {
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Verify your access'),
+      content: Text(
+        'Your offline access period (${OfflineAccess.maxOfflineDays} days) '
+        'has ended. Connect to the internet and try again.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
+  );
+}
 
 Future<void> _openResource(
   BuildContext context,
@@ -18,22 +39,7 @@ Future<void> _openResource(
   if (!context.mounted) return;
 
   if (!allowed) {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Verify your access'),
-        content: Text(
-          'Your offline access period (${OfflineAccess.maxOfflineDays} days) '
-          'has ended. Connect to the internet and try again.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    await _showAccessDialog(context);
     return;
   }
 
@@ -50,6 +56,38 @@ Future<void> _openResource(
         content: Text('Playing audio and video inside the app is coming next.'),
       ),
     );
+  }
+}
+
+Future<void> _readOnline(
+    BuildContext context, WidgetRef ref, LearningResource r) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final nav = Navigator.of(context);
+  final allowed = await ref.read(offlineAccessProvider.notifier).ensureAccess();
+  if (!context.mounted) return;
+  if (!allowed) {
+    await _showAccessDialog(context);
+    return;
+  }
+  messenger.showSnackBar(const SnackBar(
+    content: Text('Opening...'),
+    duration: Duration(seconds: 2),
+  ));
+  try {
+    final res = await Dio().get<List<int>>(
+      r.downloadUrl!,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final bytes = Uint8List.fromList(res.data ?? const []);
+    if (!context.mounted) return;
+    await nav.push(MaterialPageRoute(
+      builder: (_) =>
+          ProtectedPdfPage(title: r.title, bytes: bytes, resourceId: r.id),
+    ));
+  } catch (_) {
+    messenger.showSnackBar(const SnackBar(
+      content: Text('Could not open. Check your connection, or download it to read offline.'),
+    ));
   }
 }
 
@@ -80,6 +118,7 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
   Widget build(BuildContext context) {
     final async = ref.watch(resourcesControllerProvider);
     final downloads = ref.watch(resourceDownloadsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -96,17 +135,35 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
             const _AccessBanner(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                onChanged: (v) => setState(() => _query = v),
-                decoration: InputDecoration(
-                  hintText: 'Search resources...',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey.shade200,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                  ),
+                ),
+                child: TextField(
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                    fontSize: 14,
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                  decoration: InputDecoration(
+                    hintText: 'Search resources...',
+                    hintStyle: TextStyle(
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ),
@@ -162,7 +219,13 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
                   }).toList();
 
                   if (shown.isEmpty) {
-                    return const Center(child: Text('No resources found.'));
+                    return Center(
+                      child: Text(_starredOnly
+                          ? 'No starred resources yet. Tap the star on a resource.'
+                          : _downloadedOnly
+                              ? 'Nothing downloaded yet.'
+                              : 'Nothing here yet. Your mentor assigns resources to you.'),
+                    );
                   }
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -331,10 +394,14 @@ class _ResourceTile extends ConsumerWidget {
           icon: const Icon(Icons.refresh, color: Colors.red),
         );
       case DownloadStatus.none:
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return IconButton(
           tooltip: 'Download',
           onPressed: () => _start(context, ref),
-          icon: const Icon(Icons.download_outlined),
+          icon: Icon(
+            Icons.download_outlined,
+            color: isDark ? AppColors.darkTextSecondary : null,
+          ),
         );
     }
   }
@@ -344,11 +411,17 @@ class _ResourceTile extends ConsumerWidget {
     final info =
         ref.watch(resourceDownloadsProvider)[resource.id] ?? const DownloadInfo();
     final downloaded = info.status == DownloadStatus.downloaded;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    VoidCallback? onTap;
+    if (downloaded) {
+      onTap = () => _openResource(context, ref, resource, info.path!);
+    } else if (resource.type == ResourceType.pdf && resource.isDownloadable) {
+      onTap = () => _readOnline(context, ref, resource);
+    }
 
     return GestureDetector(
-      onTap: downloaded
-          ? () => _openResource(context, ref, resource, info.path!)
-          : null,
+      onTap: onTap,
       child: AppCard(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -367,15 +440,23 @@ class _ResourceTile extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(resource.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    resource.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     '${resource.category} • ${resource.sizeLabel}'
                     '${downloaded ? ' • Available offline' : ''}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                    ),
                   ),
                   if (info.status == DownloadStatus.failed)
                     Text(info.error ?? 'Download failed.',
@@ -390,7 +471,9 @@ class _ResourceTile extends ConsumerWidget {
                   .toggleStar(resource.id),
               icon: Icon(
                 resource.isStarred ? Icons.star : Icons.star_border,
-                color: resource.isStarred ? AppColors.pageIndicator : Colors.grey,
+                color: resource.isStarred
+                    ? AppColors.pageIndicator
+                    : (isDark ? AppColors.darkTextSecondary : Colors.grey),
               ),
             ),
             _action(context, ref, info),

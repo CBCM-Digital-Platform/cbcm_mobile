@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/storage/secure_storage_provider.dart';
 import '../../../messaging/data/messaging_providers.dart';
 import '../domain/learning_resource.dart';
 import '../domain/resource_repository.dart';
@@ -8,30 +9,36 @@ import 'resource_assignments.dart';
 final resourceRepositoryProvider =
     Provider<ResourceRepository>((ref) => MockResourceRepository());
 
-/// The signed-in mentee's library: only what her mentor assigned.
 class ResourcesController extends AsyncNotifier<List<LearningResource>> {
+  String _key(int? id) => 'starred:$id';
+
   @override
   Future<List<LearningResource>> build() async {
     final myId = await ref.watch(currentUserIdProvider.future);
-    final assigned =
-        ref.watch(resourceAssignmentsProvider)[myId] ?? const <String>{};
+    await ref.watch(resourceAssignmentsProvider.future);
+    final assigned = ref.read(resourceAssignmentsProvider.notifier).idsFor(myId);
+    final raw = await ref.read(secureStorageProvider).read(_key(myId));
+    final stars = (raw ?? '').split(',').where((s) => s.isNotEmpty).toSet();
     final all = await ref.watch(resourceRepositoryProvider).getResources();
-    return [for (final r in all) if (assigned.contains(r.id)) r];
+    return [
+      for (final r in all)
+        if (assigned.contains(r.id)) r.copyWith(isStarred: stars.contains(r.id)),
+    ];
   }
 
   Future<void> toggleStar(String id) async {
     final current = state.value;
     if (current == null) return;
     final starred = !current.firstWhere((r) => r.id == id).isStarred;
-
-    state = AsyncData([
+    final next = [
       for (final r in current) r.id == id ? r.copyWith(isStarred: starred) : r
-    ]);
-    try {
-      await ref.read(resourceRepositoryProvider).setStarred(id, starred);
-    } catch (_) {
-      state = AsyncData(current);
-    }
+    ];
+    state = AsyncData(next);
+    final myId = await ref.read(currentUserIdProvider.future);
+    await ref.read(secureStorageProvider).write(
+          _key(myId),
+          next.where((r) => r.isStarred).map((r) => r.id).join(','),
+        );
   }
 }
 
