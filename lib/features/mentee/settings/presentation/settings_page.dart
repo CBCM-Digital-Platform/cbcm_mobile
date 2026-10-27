@@ -136,6 +136,21 @@ class SettingsPage extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
+          // Section: Clinical Mentorship
+          _buildSectionHeader(context, 'Clinical Mentorship'),
+          const SizedBox(height: 8),
+          AppCard(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            child: ListTile(
+              leading: const Icon(Icons.menu_book_outlined, color: AppColors.primary),
+              title: const Text('Clinical Logbook'),
+              subtitle: const Text('Verified procedures & mentor feedback'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRoutes.menteeLogbook),
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Section: Support
           _buildSectionHeader(context, 'Support'),
           const SizedBox(height: 8),

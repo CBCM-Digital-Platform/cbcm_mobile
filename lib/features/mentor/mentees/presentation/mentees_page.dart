@@ -1,3 +1,4 @@
+import '../../../logbook/presentation/record_logbook_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/colors.dart';
@@ -10,7 +11,6 @@ import '../data/assigned_mentees_provider.dart';
 import '../../../assessments/assessments_page.dart';
 import '../../../progress/presentation/mentee_progress_card.dart';
 import 'learning_access_page.dart';
-import 'share_material_page.dart';
 
 class MenteesPage extends ConsumerStatefulWidget {
   const MenteesPage({super.key});
@@ -449,6 +449,22 @@ class _MenteeCard extends ConsumerWidget {
                     if (mentee.messageUser != null) {
                       openChatWith(context, ref, mentee.messageUser!);
                     }
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: 'Record Logbook Entry',
+                  variant: AppButtonVariant.secondary,
+                  icon: const Icon(Icons.edit_note),
+                  onPressed: () {
+                    showRecordLogbookSheet(
+                      context,
+                      initialMenteeId: mentee.id,
+                      menteeName: mentee.fullName,
+                    );
                   },
                 ),
               ),

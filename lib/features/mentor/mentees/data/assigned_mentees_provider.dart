@@ -54,7 +54,6 @@ final assignedMenteesProvider =
   final result = <AssignedMentee>[];
 
   for (final item in assignments) {
-    if (item is! Map) continue;
     final a = Map<String, dynamic>.from(item);
 
     // Only active assignments.

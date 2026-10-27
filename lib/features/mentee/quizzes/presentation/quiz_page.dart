@@ -42,9 +42,13 @@ class _QuizPageState extends ConsumerState<QuizPage> {
     });
     try {
       final q = await ref.read(quizRepositoryProvider).quizForModule(widget.moduleId);
-      if (mounted) setState(() => _quiz = q);
+      if (mounted) {
+        setState(() => _quiz = q);
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = _msg(e));
+      if (mounted) {
+        setState(() => _error = _msg(e));
+      }
     }
   }
 
@@ -54,12 +58,16 @@ class _QuizPageState extends ConsumerState<QuizPage> {
       final r = await ref
           .read(quizRepositoryProvider)
           .submit(_quiz!, Map.of(_answers));
-      if (mounted) setState(() {
-        _result = r;
-        _submitting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _result = r;
+          _submitting = false;
+        });
+      }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_msg(e))));
     }

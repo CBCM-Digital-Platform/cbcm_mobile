@@ -93,9 +93,7 @@ final notificationsProvider =
   return ref.watch(notificationsRepositoryProvider).list();
 });
 
-/// The number on the bell. Refreshes itself every minute while visible.
-final unreadCountProvider = FutureProvider.autoDispose<int>((ref) async {
-  final timer = Timer(const Duration(seconds: 60), ref.invalidateSelf);
-  ref.onDispose(timer.cancel);
+/// The number on the bell. Loaded once when the screen opens; no background polling.
+final unreadCountProvider = FutureProvider.autoDispose<int>((ref) {
   return ref.watch(notificationsRepositoryProvider).unreadCount();
 });

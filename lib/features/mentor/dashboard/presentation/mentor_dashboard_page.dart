@@ -1,3 +1,4 @@
+import '../../../logbook/presentation/record_logbook_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
@@ -53,8 +54,22 @@ class MentorDashboardPage extends ConsumerWidget {
       ),
       body: summary.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(child: Text('Could not load dashboard')),
-        data: (data) => ListView(
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Could not load dashboard'),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => ref.invalidate(_summaryProvider),
+                child: const Text('Try again'),
+              ),
+            ],
+          ),
+        ),
+        data: (data) => RefreshIndicator(
+          onRefresh: () async => ref.refresh(_summaryProvider.future),
+          child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             name.when(
@@ -84,6 +99,26 @@ class MentorDashboardPage extends ConsumerWidget {
               accentColor: AppColors.pageIndicator,
             ),
 
+            if (data.logbooksPending > 0) ...[
+              const SizedBox(height: 12),
+              StatCard(
+                label: 'Pending Logbooks',
+                value: '',
+                icon: Icons.menu_book_outlined,
+                iconColor: const Color(0xFFD97706),
+                accentColor: const Color(0xFFD97706),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                label: 'Record Clinical Logbook',
+                icon: const Icon(Icons.edit_note),
+                onPressed: () => showRecordLogbookSheet(context),
+              ),
+            ),
             const SizedBox(height: 24),
             Text("Today's Schedule", style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
@@ -130,6 +165,7 @@ class MentorDashboardPage extends ConsumerWidget {
                 ),
               ),
           ],
+        ),
         ),
       ),
     );

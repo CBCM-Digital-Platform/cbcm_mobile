@@ -4,8 +4,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../domain/mentor_repository.dart';
 import '../domain/mentor_summary.dart';
 
-/// Real backend implementation of [MentorRepository]. Shows only what the
-/// server returns: no sample data is mixed in.
+/// Real backend implementation of [MentorRepository].
 class DioMentorRepository implements MentorRepository {
   DioMentorRepository(this._dio, {MentorRepository? fallback});
 
@@ -20,10 +19,14 @@ class DioMentorRepository implements MentorRepository {
       _get(ApiEndpoints.mentorAssignments(id)),
       _get(ApiEndpoints.sessions, query: {'mentor_id': id, 'limit': 50}),
       _get(ApiEndpoints.mentorshipCycles),
+      _get('/logbook', query: {'status': 'submitted'}),
+      _get('/activity-logs', query: {'limit': 5}),
     ]);
     final assignmentsData = results[0];
     final sessionsData = results[1];
     final cyclesData = results[2];
+    final logbooksData = results[3];
+    final activityLogsData = results[4];
 
     if (assignmentsData == null && sessionsData == null && cyclesData == null) {
       throw StateError('Could not reach the server.');
@@ -36,12 +39,17 @@ class DioMentorRepository implements MentorRepository {
     }).toList();
 
     final studentNames = <String>[];
+    final menteeNamesById = <int, String>{};
     for (final a in assignments) {
       final m = a['mentee'] is Map ? a['mentee'] as Map : null;
+      final mId = (m?['id'] ?? a['mentee_id'] ?? a['menteeId']) as num?;
       final name =
           (m?['full_name'] ?? m?['fullName'] ?? m?['name'] ?? a['mentee_name'])
               ?.toString();
-      if (name != null && name.isNotEmpty) studentNames.add(name);
+      if (name != null && name.isNotEmpty) {
+        studentNames.add(name);
+        if (mId != null) menteeNamesById[mId.toInt()] = name;
+      }
     }
 
     // Sessions: active ones, and today's for the schedule.
@@ -113,18 +121,108 @@ class DioMentorRepository implements MentorRepository {
       );
     }
 
+    // Pending logbooks count from real backend
+    final pendingLogbooksList = _list(logbooksData).whereType<Map>().toList();
+    final logbooksPending = pendingLogbooksList.length;
+
+    // Recent mentee activity items
+    final recentActivity = <ActivityItem>[];
+
+    // 1. Pending logbook submissions
+    for (final lb in pendingLogbooksList) {
+      final mentee = lb['mentee'] is Map ? lb['mentee'] as Map : null;
+      final mId = (mentee?['id'] ?? lb['mentee_id'] ?? lb['menteeId']) as num?;
+      final menteeName = (mentee?['full_name'] ??
+              mentee?['name'] ??
+              (mId != null ? menteeNamesById[mId.toInt()] : null) ??
+              lb['mentee_name'] ??
+              'Mentee')
+          .toString();
+      final title = (lb['procedure_name'] ??
+              lb['title'] ??
+              lb['topic'] ??
+              'Clinical Logbook entry')
+          .toString();
+      final createdAt = DateTime.tryParse(
+              '${lb['created_at'] ?? lb['createdAt'] ?? lb['entry_date'] ?? ''}')
+          ?.toLocal();
+
+      recentActivity.add(ActivityItem(
+        icon: ActivityIconType.logbookSubmitted,
+        description: '$menteeName submitted $title.',
+        timeAgo: createdAt != null ? _timeAgo(createdAt, now) : 'Recently',
+        tag: 'Logbook',
+      ));
+    }
+
+    // 2. Filtered & humanized activity logs
+    for (final log in _list(activityLogsData).whereType<Map>()) {
+      final rawAction = (log['action'] ?? '').toString();
+      final action = rawAction.toUpperCase();
+      final entityType = (log['entity_type'] ?? log['entityType'] ?? '').toString().toUpperCase();
+
+      // Filter out low-level auth & token audit logs (not mentee clinical activity)
+      if (action.contains('LOGIN') ||
+          action.contains('LOGOUT') ||
+          action.contains('AUTH') ||
+          (entityType == 'USER' && (action.contains('LOG') || action.contains('TOKEN')))) {
+        continue;
+      }
+
+      final actor = log['actor'] is Map ? log['actor'] as Map : null;
+      final actorId = (log['actor_id'] ?? log['actorId'] ?? actor?['id']) as num?;
+      final actorName = (actor?['full_name'] ??
+              actor?['name'] ??
+              (actorId != null ? menteeNamesById[actorId.toInt()] : null) ??
+              'Mentee')
+          .toString();
+      final createdAt = DateTime.tryParse('${log['created_at'] ?? log['createdAt'] ?? ''}')?.toLocal();
+
+      ActivityIconType iconType = ActivityIconType.clarificationRequested;
+      String desc;
+
+      if (action.contains('APPROVE')) {
+        iconType = ActivityIconType.approved;
+        desc = 'You approved an entry for $actorName.';
+      } else if (entityType.contains('LOGBOOK') || action.contains('LOGBOOK')) {
+        iconType = ActivityIconType.logbookSubmitted;
+        desc = '$actorName submitted a clinical logbook.';
+      } else if (entityType.contains('ASSESS') || action.contains('ASSESS')) {
+        iconType = ActivityIconType.approved;
+        desc = '$actorName completed an assessment.';
+      } else if (entityType.contains('QUIZ') || action.contains('QUIZ')) {
+        iconType = ActivityIconType.approved;
+        desc = '$actorName completed a module quiz.';
+      } else if (entityType.contains('SESSION') || action.contains('SESSION')) {
+        iconType = ActivityIconType.clarificationRequested;
+        desc = '$actorName updated a mentoring session.';
+      } else {
+        final cleanAction = rawAction.replaceAll('.', ' ').replaceAll('_', ' ');
+        final cleanEntity = entityType.toLowerCase().replaceAll('_', ' ');
+        desc = '$actorName $cleanAction ($cleanEntity).';
+      }
+
+      final timeAgoStr = createdAt != null ? _timeAgo(createdAt, now) : 'recently';
+
+      recentActivity.add(ActivityItem(
+        icon: iconType,
+        description: desc,
+        timeAgo: timeAgoStr,
+        tag: entityType.isNotEmpty ? entityType.toLowerCase() : null,
+      ));
+    }
+
     return MentorSummary(
       totalMentees: assignments.length,
       activeSessions: live.length,
-      logbooksPending: 0,
+      logbooksPending: logbooksPending,
       todaySchedule: todaySchedule,
-      recentActivity: const [],
+      recentActivity: recentActivity,
       activeCycleName: cycleInfo?.name,
       activeCycle: cycleInfo,
     );
   }
 
-  /// Returns the response body, or null if the request failed.
   Future<dynamic> _get(String path, {Map<String, dynamic>? query}) async {
     try {
       final r = await _dio.get(path, queryParameters: query);
@@ -141,7 +239,7 @@ class DioMentorRepository implements MentorRepository {
     if (raw is Map) {
       final data = raw['data'] ?? raw;
       if (data is List) return data;
-      const keys = ['items', 'assignments', 'cycles', 'sessions'];
+      const keys = ['items', 'assignments', 'cycles', 'sessions', 'entries', 'logs'];
       if (data is Map) {
         for (final k in keys) {
           if (data[k] is List) return data[k] as List;
@@ -162,5 +260,13 @@ class DioMentorRepository implements MentorRepository {
     final minute = dt.minute.toString().padLeft(2, '0');
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     return '${hour.toString().padLeft(2, '0')}:$minute $period';
+  }
+
+  String _timeAgo(DateTime from, DateTime to) {
+    final diff = to.difference(from);
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'just now';
   }
 }

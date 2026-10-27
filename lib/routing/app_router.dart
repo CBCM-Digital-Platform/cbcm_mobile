@@ -17,6 +17,7 @@ import '../features/mentee/learning/presentation/module_detail_page.dart';
 import '../features/mentee/mentorship/presentation/my_mentor_page.dart';
 import '../features/mentee/presentation/mentee_shell.dart';
 import '../features/mentee/quizzes/presentation/quiz_page.dart';
+import '../features/logbook/presentation/mentee_logbook_page.dart';
 import '../features/mentee/resources/presentation/resources_page.dart';
 import '../features/mentor/dashboard/presentation/mentor_dashboard_page.dart';
 import '../features/mentor/mentees/presentation/mentees_page.dart';
@@ -123,6 +124,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.menteeQuiz,
         builder: (context, state) => const QuizPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.menteeLogbook,
+        builder: (context, state) => const MenteeLogbookPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

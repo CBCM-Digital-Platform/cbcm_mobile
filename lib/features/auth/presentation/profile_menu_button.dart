@@ -23,6 +23,8 @@ class ProfileMenuButton extends ConsumerWidget {
           context.push(AppRoutes.profile);
         } else if (value == 'settings') {
           context.push(AppRoutes.settings);
+        } else if (value == 'logbook') {
+          context.push(AppRoutes.menteeLogbook);
         } else if (value == 'help') {
           context.push(AppRoutes.help);
         } else if (value == 'logout') {
@@ -69,6 +71,16 @@ class ProfileMenuButton extends ConsumerWidget {
               Icon(Icons.settings_outlined, size: 20),
               SizedBox(width: 12),
               Text('Settings'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'logbook',
+          child: Row(
+            children: [
+              Icon(Icons.menu_book_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('Clinical Logbook'),
             ],
           ),
         ),

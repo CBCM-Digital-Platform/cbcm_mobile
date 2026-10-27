@@ -21,6 +21,7 @@ class AppRoutes {
   static const lessonReader = '/mentee/lesson-reader';
   static const menteeResources = '/mentee/resources';
   static const menteeQuiz = '/mentee/quiz';
+  static const menteeLogbook = '/mentee/logbook';
 
   // Mentor (inside the bottom navigation bar)
   static const mentorDashboard = '/mentor/dashboard';
