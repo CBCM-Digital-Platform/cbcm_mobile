@@ -31,7 +31,7 @@ class CurrentRoleNotifier extends Notifier<UserRole?> {
 
     // Leave protected screens immediately, then clean up.
     state = null;
-    ref.invalidate(currentUserIdProvider);
+    Future.microtask(() => ref.invalidate(currentUserIdProvider));
     ref.read(pendingPasswordProvider.notifier).clear();
     ref.read(mustChangePasswordProvider.notifier).set(false);
 

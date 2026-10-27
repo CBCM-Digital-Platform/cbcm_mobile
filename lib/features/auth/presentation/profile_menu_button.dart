@@ -23,6 +23,8 @@ class ProfileMenuButton extends ConsumerWidget {
           context.push(AppRoutes.profile);
         } else if (value == 'settings') {
           context.push(AppRoutes.settings);
+        } else if (value == 'help') {
+          context.push(AppRoutes.help);
         } else if (value == 'logout') {
           confirmAndLogout(context, ref);
         } else if (value == 'expire') {
@@ -67,6 +69,16 @@ class ProfileMenuButton extends ConsumerWidget {
               Icon(Icons.settings_outlined, size: 20),
               SizedBox(width: 12),
               Text('Settings'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'help',
+          child: Row(
+            children: [
+              Icon(Icons.help_outline, size: 20),
+              SizedBox(width: 12),
+              Text('Help & support'),
             ],
           ),
         ),

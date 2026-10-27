@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+import '../../../../routing/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_info.dart';
@@ -130,6 +132,21 @@ class SettingsPage extends ConsumerWidget {
                   onTap: () => confirmAndLogout(context, ref),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Section: Support
+          _buildSectionHeader(context, 'Support'),
+          const SizedBox(height: 8),
+          AppCard(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            child: ListTile(
+              leading: const Icon(Icons.help_outline),
+              title: const Text('Help & support'),
+              subtitle: const Text('FAQs and user guides'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(AppRoutes.help),
             ),
           ),
           const SizedBox(height: 24),
