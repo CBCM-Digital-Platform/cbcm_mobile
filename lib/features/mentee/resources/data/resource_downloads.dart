@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../../../core/network/dio_provider.dart';
 import '../../../../core/security/file_vault.dart';
 import '../domain/learning_resource.dart';
 
@@ -60,7 +60,6 @@ class ResourceDownloads extends Notifier<Map<String, DownloadInfo>> {
           } catch (_) {}
         }
       }
-      // Anything already in progress wins over what was found on disk.
       state = {...found, ...state};
     } catch (e) {
       debugPrint('[DOWNLOAD] could not read saved downloads: $e');
@@ -83,9 +82,9 @@ class ResourceDownloads extends Notifier<Map<String, DownloadInfo>> {
       target = '${dir.path}/${resource.id}.enc';
       temp = '${dir.path}/${resource.id}.part';
 
-      // A plain Dio for now. Files from the real backend will need the
-      // signed-in Dio so the access token is attached.
-      await Dio().download(
+      // Authenticated Dio with bearer token attached.
+      final dio = ref.read(dioProvider);
+      await dio.download(
         url,
         temp,
         onReceiveProgress: (received, total) {

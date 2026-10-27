@@ -35,12 +35,16 @@ class _State extends ConsumerState<AssignResourcesPage>
   bool get wantKeepAlive => true;
 
   late final Set<String> _selected = {
-    ...ref.read(resourceAssignmentsProvider.notifier).idsFor(widget.menteeId),
+    ...?ref.read(resourceAssignmentsProvider.notifier).idsFor(widget.menteeId),
   };
   String? _area;
 
-  void _save() {
-    ref.read(resourceAssignmentsProvider.notifier).setFor(widget.menteeId, _selected);
+  Future<void> _save() async {
+    await ref.read(resourceAssignmentsProvider.notifier).setFor(widget.menteeId, _selected);
+    try {
+      await ref.read(resourceRepositoryProvider).assignToMentee(widget.menteeId, _selected);
+    } catch (_) {}
+    if (!mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Assigned ${_selected.length} resource(s) to ${widget.menteeName}.')),

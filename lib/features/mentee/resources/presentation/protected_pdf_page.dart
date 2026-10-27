@@ -34,7 +34,7 @@ class _ProtectedPdfPageState extends ConsumerState<ProtectedPdfPage> {
   String? _error;
 
   /// Identifies this document for saving the reading position (the stored
-  /// file is named "<resource id>.enc").
+  /// file is named `resource_id.enc`).
   String get _resourceKey {
     if (widget.resourceId != null) return 'pdf:${widget.resourceId}';
     final name = widget.encryptedPath!.replaceAll('\\', '/').split('/').last;

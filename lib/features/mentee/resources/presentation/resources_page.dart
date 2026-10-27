@@ -1,3 +1,4 @@
+import '../../../../core/network/dio_provider.dart';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -74,7 +75,8 @@ Future<void> _readOnline(
     duration: Duration(seconds: 2),
   ));
   try {
-    final res = await Dio().get<List<int>>(
+    final dio = ref.read(dioProvider);
+    final res = await dio.get<List<int>>(
       r.downloadUrl!,
       options: Options(responseType: ResponseType.bytes),
     );
@@ -211,11 +213,15 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
                       ),
                     );
                   }
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    itemCount: shown.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) => _ResourceTile(resource: shown[i]),
+                  return RefreshIndicator(
+                    onRefresh: () => ref.refresh(resourcesControllerProvider.future),
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                      itemCount: shown.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _ResourceTile(resource: shown[i]),
+                    ),
                   );
                 },
               ),

@@ -2,12 +2,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
 
-/// DEMO ONLY: resources given to each mentee, saved on THIS phone only.
-/// Replaced by the backend assignment API.
-const _key = 'demo_resource_assignments';
-
-/// Shown to a mentee until her mentor changes the list (the test files).
-const demoDefaultResourceIds = {'r1', 'r6', 'r7'};
+/// Resources given to each mentee, saved securely on this device and synced with backend.
+const _key = 'resource_assignments';
 
 class ResourceAssignments extends AsyncNotifier<Map<int, Set<String>>> {
   @override
@@ -25,8 +21,9 @@ class ResourceAssignments extends AsyncNotifier<Map<int, Set<String>>> {
     }
   }
 
-  Set<String> idsFor(int? menteeId) =>
-      state.value?[menteeId] ?? demoDefaultResourceIds;
+  /// Returns the assigned IDs for a mentee.
+  /// If null, all catalog resources granted by backend are accessible.
+  Set<String>? idsFor(int? menteeId) => state.value?[menteeId];
 
   Future<void> setFor(int menteeId, Set<String> ids) async {
     final next = {...?state.value, menteeId: Set.of(ids)};

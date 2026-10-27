@@ -1,13 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/network/dio_provider.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
 import '../../../messaging/data/messaging_providers.dart';
 import '../domain/learning_resource.dart';
 import '../domain/resource_repository.dart';
-import 'mock_resource_repository.dart';
+import 'dio_resource_repository.dart';
 import 'resource_assignments.dart';
 
 final resourceRepositoryProvider =
-    Provider<ResourceRepository>((ref) => MockResourceRepository());
+    Provider<ResourceRepository>((ref) => DioResourceRepository(ref.watch(dioProvider)));
 
 class ResourcesController extends AsyncNotifier<List<LearningResource>> {
   String _key(int? id) => 'starred:$id';
@@ -22,7 +23,8 @@ class ResourcesController extends AsyncNotifier<List<LearningResource>> {
     final all = await ref.watch(resourceRepositoryProvider).getResources();
     return [
       for (final r in all)
-        if (assigned.contains(r.id)) r.copyWith(isStarred: stars.contains(r.id)),
+        if (assigned == null || assigned.contains(r.id))
+          r.copyWith(isStarred: stars.contains(r.id)),
     ];
   }
 

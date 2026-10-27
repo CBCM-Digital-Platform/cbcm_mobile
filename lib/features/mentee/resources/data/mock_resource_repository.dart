@@ -1,7 +1,7 @@
 import '../domain/learning_resource.dart';
 import '../domain/resource_repository.dart';
 
-/// MOCKED until the backend has resource endpoints.
+/// MOCKED until or when offline without backend connection.
 class MockResourceRepository implements ResourceRepository {
   final Map<String, bool> _starred = {};
 
@@ -9,7 +9,7 @@ class MockResourceRepository implements ResourceRepository {
   static const _samplePdf =
       'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
 
-  static const _all = [
+  static const all = [
     LearningResource(
       id: 'r1',
       title: 'Fundal Palpation Clinical Handbook',
@@ -49,7 +49,7 @@ class MockResourceRepository implements ResourceRepository {
       category: 'Antenatal Care',
       sizeBytes: 9000000,
     ),
-        LearningResource(
+    LearningResource(
       id: 'r6',
       title: 'Sample text document (read-aloud test)',
       type: ResourceType.pdf,
@@ -62,13 +62,27 @@ class MockResourceRepository implements ResourceRepository {
 
   @override
   Future<List<LearningResource>> getResources() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    return [for (final r in _all) r.copyWith(isStarred: _starred[r.id] ?? false)];
+    await Future.delayed(const Duration(milliseconds: 200));
+    return [for (final r in all) r.copyWith(isStarred: _starred[r.id] ?? false)];
+  }
+
+  @override
+  Future<LearningResource?> getResource(String id) async {
+    final list = await getResources();
+    for (final r in list) {
+      if (r.id == id) return r;
+    }
+    return null;
+  }
+
+  @override
+  Future<void> assignToMentee(int menteeId, Set<String> resourceIds) async {
+    await Future.delayed(const Duration(milliseconds: 100));
   }
 
   @override
   Future<void> setStarred(String resourceId, bool starred) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    await Future.delayed(const Duration(milliseconds: 100));
     _starred[resourceId] = starred;
   }
 }
