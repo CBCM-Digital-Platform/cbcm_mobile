@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/colors.dart';
 
 class AppCard extends StatelessWidget {
   const AppCard({
@@ -18,11 +19,13 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final cardColor = color ?? theme.cardColor;
+    final cardColor = isDark
+        ? (color ?? AppColors.darkSurface)
+        : (color ?? theme.cardColor);
 
     final border = borderColor != null
         ? Border.all(color: borderColor!)
-        : (isDark ? Border.all(color: theme.dividerColor) : null);
+        : (isDark ? Border.all(color: AppColors.darkBorder) : null);
 
     return Container(
       padding: padding,

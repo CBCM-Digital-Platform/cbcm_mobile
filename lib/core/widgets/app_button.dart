@@ -57,11 +57,12 @@ class AppButton extends StatelessWidget {
 
       // For actions like Back: olive outline, never turns red
       case AppButtonVariant.secondary:
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return OutlinedButton(
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary),
+            foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+            side: BorderSide(color: isDark ? AppColors.primaryLight : AppColors.primary),
             textStyle: AppTypography.button,
             minimumSize: const Size(0, 48),
             shape: defaultShape,

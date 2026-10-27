@@ -202,10 +202,12 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
         !_isSubmitting &&
         _times?.error == null;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
       constraints: BoxConstraints(
@@ -220,7 +222,7 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -243,13 +245,19 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
                       widget.initialMenteeName != null
                           ? 'With ${widget.initialMenteeName}'
                           : 'Choose a date and a free time',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: Icon(
+                  Icons.close,
+                  color: isDark ? AppColors.darkTextSecondary : null,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
@@ -269,17 +277,22 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                      ),
                       borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey.shade50,
+                      color: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade50,
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: Text(
                             _formatDate(_selectedDate),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 15),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              color: isDark ? AppColors.darkTextPrimary : null,
+                            ),
                           ),
                         ),
                         Icon(Icons.edit_calendar, color: AppColors.primary),
@@ -321,10 +334,19 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
                 DropdownButtonFormField<String>(
                   initialValue: _selectedTopic,
                   isExpanded: true,
+                  dropdownColor: isDark ? AppColors.darkElevatedSurface : Colors.white,
                   decoration: _fieldDecoration(),
                   items: [
                     for (final t in _topics)
-                      DropdownMenuItem(value: t, child: Text(t)),
+                      DropdownMenuItem(
+                        value: t,
+                        child: Text(
+                          t,
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkTextPrimary : null,
+                          ),
+                        ),
+                      ),
                   ],
                   onChanged: (v) {
                     if (v != null) setState(() => _selectedTopic = v);
@@ -356,18 +378,32 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     );
   }
 
-  InputDecoration _fieldDecoration({String? hint}) => InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+  InputDecoration _fieldDecoration({String? hint}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(
+        fontSize: 13,
+        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
         ),
-        filled: true,
-        fillColor: Colors.grey.shade50,
-      );
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+        ),
+      ),
+      filled: true,
+      fillColor: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade50,
+    );
+  }
 
   Widget _buildAssignmentSection(
     AsyncValue<List<Map<String, dynamic>>> async,
@@ -403,6 +439,7 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     if (assignments.length == 1) return const SizedBox.shrink();
 
     final isMentor = role == UserRole.mentor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -411,14 +448,20 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
         DropdownButtonFormField<int>(
           initialValue: effectiveId,
           isExpanded: true,
+          dropdownColor: isDark ? AppColors.darkElevatedSurface : Colors.white,
           decoration: _fieldDecoration(),
           items: [
             for (final a in assignments)
               if (_idOf(a) != null)
                 DropdownMenuItem<int>(
                   value: _idOf(a),
-                  child: Text(_partnerLabel(a, role),
-                      overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    _partnerLabel(a, role),
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextPrimary : null,
+                    ),
+                  ),
                 ),
           ],
           onChanged: (v) {
@@ -431,10 +474,14 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
   }
 
   Widget _buildTimes(int? effectiveId) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (effectiveId == null) {
       return Text(
         'Free times appear once an assignment is available.',
-        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        style: TextStyle(
+          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+          fontSize: 13,
+        ),
       );
     }
     if (_loadingTimes || _times == null) {
@@ -461,7 +508,10 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     if (slots.isEmpty) {
       return Text(
         'No free times on this day. Pick another date.',
-        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        style: TextStyle(
+          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+          fontSize: 13,
+        ),
       );
     }
 
@@ -503,14 +553,17 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     );
   }
 
-  Widget _smallLabel(String text) => Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey.shade600,
-        ),
-      );
+  Widget _smallLabel(String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+      ),
+    );
+  }
 
   Widget _header(IconData icon, String title) {
     return Row(
@@ -528,23 +581,38 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
   }
 
   Widget _timeChip(TimeSlot slot) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final selected = _selectedSlot == slot;
-    return ChoiceChip(
-      label: Text(slot.label),
-      selected: selected,
-      showCheckmark: false,
-      onSelected: (_) => setState(() => _selectedSlot = slot),
-      selectedColor: AppColors.primary,
-      labelStyle: TextStyle(
-        color: selected ? Colors.white : Colors.black87,
-        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-        fontSize: 12,
-      ),
-      backgroundColor: Colors.grey.shade100,
-      shape: RoundedRectangleBorder(
+    return Material(
+      color: selected
+          ? AppColors.primary
+          : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: () => setState(() => _selectedSlot = slot),
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: selected ? AppColors.primary : Colors.grey.shade300,
+        splashColor: AppColors.primary.withValues(alpha: 0.2),
+        highlightColor: AppColors.primary.withValues(alpha: 0.1),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected
+                  ? AppColors.primary
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+            ),
+          ),
+          child: Text(
+            slot.label,
+            style: TextStyle(
+              color: selected
+                  ? Colors.white
+                  : (isDark ? AppColors.darkTextPrimary : Colors.black87),
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 12,
+            ),
+          ),
         ),
       ),
     );
@@ -556,6 +624,7 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     required bool selected,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -564,19 +633,25 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.primary : Colors.grey.shade300,
+            color: selected
+                ? AppColors.primary
+                : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
             width: selected ? 2 : 1,
           ),
           color: selected
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : Colors.grey.shade50,
+              ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.08)
+              : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade50),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon,
-                size: 18,
-                color: selected ? AppColors.primary : Colors.grey.shade600),
+            Icon(
+              icon,
+              size: 18,
+              color: selected
+                  ? (isDark ? Colors.white : AppColors.primary)
+                  : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
+            ),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
@@ -585,7 +660,9 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-                  color: selected ? AppColors.primary : Colors.black87,
+                  color: selected
+                      ? (isDark ? Colors.white : AppColors.primary)
+                      : (isDark ? AppColors.darkTextPrimary : Colors.black87),
                 ),
               ),
             ),
@@ -596,11 +673,29 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
   }
 
   Future<void> _pickDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 90)),
+      builder: (context, child) {
+        if (!isDark) return child!;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: AppColors.darkElevatedSurface,
+              onSurface: AppColors.darkTextPrimary,
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: AppColors.darkElevatedSurface,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => _selectedDate = picked);
   }

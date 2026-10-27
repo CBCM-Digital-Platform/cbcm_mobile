@@ -41,6 +41,7 @@ class _State extends ConsumerState<AssignResourcesPage> {
   @override
   Widget build(BuildContext context) {
     final catalog = ref.watch(_catalogProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -65,34 +66,68 @@ class _State extends ConsumerState<AssignResourcesPage> {
                 margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.pageIndicator.withValues(alpha: 0.25),
+                  color: isDark
+                      ? AppColors.pageIndicator.withValues(alpha: 0.15)
+                      : AppColors.pageIndicator.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.pageIndicator.withValues(alpha: isDark ? 0.35 : 0.6),
+                  ),
                 ),
-                child: const Text(
+                child: Text(
                   'Demo: approved resources are sample data and assignments '
                   'are kept on this phone until the backend is ready.',
-                  style: TextStyle(fontSize: 12),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                  ),
                 ),
               ),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
                   children: [
-                    for (final a in [null, ...areas])
-                      Padding(
+                    for (final a in [null, ...areas]) () {
+                      final isSelected = _area == a;
+                      return Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(a ?? 'All areas'),
-                          selected: _area == a,
-                          showCheckmark: false,
-                          selectedColor: AppColors.primary,
-                          labelStyle: TextStyle(
-                            color: _area == a ? Colors.white : Colors.black87,
+                        child: Material(
+                          color: isSelected
+                              ? AppColors.primary
+                              : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100),
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            onTap: () => setState(() => _area = a),
+                            borderRadius: BorderRadius.circular(20),
+                            splashColor: AppColors.primary.withValues(alpha: 0.2),
+                            highlightColor: AppColors.primary.withValues(alpha: 0.1),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Text(
+                                a ?? 'All areas',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                                ),
+                              ),
+                            ),
                           ),
-                          onSelected: (_) => setState(() => _area = a),
                         ),
-                      ),
+                      );
+                    }(),
                   ],
                 ),
               ),
@@ -102,9 +137,23 @@ class _State extends ConsumerState<AssignResourcesPage> {
                     for (final r in shown)
                       CheckboxListTile(
                         activeColor: AppColors.primary,
+                        checkColor: Colors.white,
                         value: _selected.contains(r.id),
-                        title: Text(r.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-                        subtitle: Text('${r.category} • ${r.type.name}'),
+                        title: Text(
+                          r.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${r.category} • ${r.type.name}',
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                        ),
                         onChanged: (v) => setState(() =>
                             v == true ? _selected.add(r.id) : _selected.remove(r.id)),
                       ),

@@ -158,7 +158,10 @@ class _NotificationTile extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Text(
                           listTime(item.createdAt),
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -168,7 +171,10 @@ class _NotificationTile extends ConsumerWidget {
                         item.body,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ],

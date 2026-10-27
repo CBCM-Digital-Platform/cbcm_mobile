@@ -102,7 +102,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     Text(
                       'Access your mentorship dashboard.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                     ),
                     const SizedBox(height: 24),

@@ -74,7 +74,10 @@ class _ReadAloudBarState extends State<ReadAloudBar> {
                   if (canUse && total > 0)
                     Text(
                       '${value.round() + 1} / $total',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                 ],
               ),

@@ -23,6 +23,7 @@ class MyMentorPage extends ConsumerWidget {
         : (fallbackMentor != null ? [fallbackMentor] : const <MessageUser>[]);
     final loading = ref.watch(contactsApiProvider).isLoading && mentors.isEmpty;
     final sessionsAsync = ref.watch(menteeSessionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -96,7 +97,9 @@ class MyMentorPage extends ConsumerWidget {
                                     'Your mentor',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
@@ -163,15 +166,21 @@ class MyMentorPage extends ConsumerWidget {
                 ),
                 data: (sessions) {
                   if (sessions.isEmpty) {
-                    return const AppCard(
+                    return AppCard(
                       child: Row(
                         children: [
-                          Icon(Icons.event_outlined, color: Colors.grey),
-                          SizedBox(width: 12),
+                          Icon(
+                            Icons.event_outlined,
+                            color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                          ),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'No sessions scheduled yet. Use the "Schedule" button above to request a supervision session.',
-                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                              style: TextStyle(
+                                color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],

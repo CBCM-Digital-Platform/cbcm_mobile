@@ -164,6 +164,9 @@ class _FormState extends ConsumerState<AssessmentFormPage> {
           DropdownButtonFormField<String>(
             initialValue: _area,
             isExpanded: true,
+            dropdownColor: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkElevatedSurface
+                : Colors.white,
             decoration: const InputDecoration(labelText: 'Thematic area'),
             items: [
               for (final a in kAssessmentAreas)

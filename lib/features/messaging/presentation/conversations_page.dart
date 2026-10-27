@@ -79,20 +79,52 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (v) => setState(() => _query = v),
-                decoration: InputDecoration(
-                  hintText: 'Search messages...',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey.shade200,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
+              child: Builder(
+                builder: (context) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  return TextField(
+                    controller: _searchController,
+                    onChanged: (v) => setState(() => _query = v),
+                    keyboardAppearance: isDark ? Brightness.dark : Brightness.light,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search messages...',
+                      hintStyle: TextStyle(
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                      ),
+                      filled: true,
+                      fillColor: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade200,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.transparent,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.transparent,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             Padding(
@@ -145,7 +177,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                             padding:
                                 const EdgeInsets.fromLTRB(20, 4, 20, 96),
                             itemCount: shown.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 10),
                             itemBuilder: (_, i) => _ConversationTile(
                               conversation: shown[i],
@@ -165,16 +197,43 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
 
   Widget _chip(String label, _Filter value) {
     final selected = _filter == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      showCheckmark: false,
-      selectedColor: AppColors.primary,
-      backgroundColor: Colors.grey.shade200,
-      labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87),
-      side: BorderSide.none,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      onSelected: (_) => setState(() => _filter = value),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: selected
+            ? AppColors.primary
+            : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => setState(() => _filter = value),
+          borderRadius: BorderRadius.circular(20),
+          splashColor: AppColors.primary.withValues(alpha: 0.2),
+          highlightColor: AppColors.primary.withValues(alpha: 0.1),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selected
+                    ? AppColors.primary
+                    : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                width: 1.2,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected
+                    ? Colors.white
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -182,6 +241,8 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
     final mentors = ref.watch(mentorContactsProvider);
     final mentees = ref.watch(menteeContactsProvider);
     final assigned = <MessageUser>[...mentors, ...mentees];
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (_query.isNotEmpty) {
       return ListView(
@@ -192,7 +253,10 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
           Center(
             child: Text(
               'No conversations matching "$_query"',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                fontSize: 14,
+              ),
             ),
           ),
         ],
@@ -207,9 +271,11 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: isDark ? const Color(0xFF1E3A5F) : Colors.blue.shade50,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.blue.shade100),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2563EB) : Colors.blue.shade100,
+              ),
             ),
             child: Row(
               children: [
@@ -219,13 +285,20 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Direct Contacts',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: isDark ? AppColors.darkTextPrimary : null,
+                        ),
                       ),
                       Text(
                         'Start a conversation with your assigned mentorship partner below.',
-                        style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFF93C5FD) : Colors.grey.shade700,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -248,13 +321,20 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                         children: [
                           Text(
                             person.fullName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: isDark ? AppColors.darkTextPrimary : null,
+                            ),
                           ),
                           Text(
                             person.role.toLowerCase() == 'mentor'
                                 ? 'Assigned Mentor'
                                 : 'Assigned Mentee',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -276,7 +356,11 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
       padding: const EdgeInsets.all(24),
       children: [
         const SizedBox(height: 60),
-        Icon(Icons.chat_bubble_outline, size: 56, color: Colors.grey.shade400),
+        Icon(
+          Icons.chat_bubble_outline,
+          size: 56,
+          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
+        ),
         const SizedBox(height: 14),
         Center(
           child: Text(
@@ -284,7 +368,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
+              color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade700,
             ),
           ),
         ),
@@ -293,7 +377,10 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
           child: Text(
             noContactsMessage(),
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -321,6 +408,7 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final others = conversation.others(myId);
     final isGroup = conversation.type != 'direct' || others.length > 1;
     final avatarUser = isGroup || others.isEmpty ? null : others.first;
@@ -328,8 +416,13 @@ class _ConversationTile extends StatelessWidget {
     final hasUnread = conversation.unreadCount > 0;
 
     return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(16),
+      color: isDark ? AppColors.darkSurface : Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDark ? AppColors.darkBorder : Colors.transparent,
+        ),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
@@ -353,6 +446,9 @@ class _ConversationTile extends StatelessWidget {
                             style: TextStyle(
                               fontWeight:
                                   hasUnread ? FontWeight.bold : FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
                             ),
                           ),
                         ),
@@ -360,7 +456,14 @@ class _ConversationTile extends StatelessWidget {
                         Text(
                           listTime(conversation.lastMessageAt),
                           style: TextStyle(
-                              fontSize: 12, color: Colors.grey.shade600),
+                            fontSize: 12,
+                            fontWeight: hasUnread ? FontWeight.w600 : FontWeight.normal,
+                            color: hasUnread
+                                ? AppColors.pageIndicator
+                                : (isDark
+                                    ? AppColors.darkTextSecondary
+                                    : Colors.grey.shade600),
+                          ),
                         ),
                       ],
                     ),
@@ -374,7 +477,9 @@ class _ConversationTile extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade700,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : Colors.grey.shade700,
                             ),
                           ),
                         ),

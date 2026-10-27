@@ -82,7 +82,7 @@ class _LessonTile extends StatelessWidget {
     final color = switch (lesson.status) {
       LessonStatus.completed => Colors.green,
       LessonStatus.inProgress => AppColors.primary,
-      LessonStatus.notStarted => Colors.grey,
+      LessonStatus.notStarted => Theme.of(context).colorScheme.onSurfaceVariant,
     };
     final subtitle = lesson.status == LessonStatus.inProgress
         ? 'In progress (${lesson.progressPercent.toStringAsFixed(0)}%)'

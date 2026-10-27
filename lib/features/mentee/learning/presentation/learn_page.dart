@@ -141,12 +141,15 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: LinearProgressIndicator(
         value: value.clamp(0, 1),
         minHeight: 6,
-        backgroundColor: onDark ? Colors.white24 : Colors.grey.shade300,
+        backgroundColor: onDark
+            ? Colors.white24
+            : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
         color: onDark ? AppColors.pageIndicator : AppColors.primary,
       ),
     );
@@ -197,6 +200,7 @@ class _ContinueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final lesson = data.nextLesson;
     final module = data.activeModule;
+    final mutedColor = Theme.of(context).colorScheme.onSurfaceVariant;
 
     if (lesson == null || module == null) {
       return const AppCard(
@@ -221,7 +225,7 @@ class _ContinueCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text('Module ${module.number}: ${module.title}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              style: TextStyle(fontSize: 12, color: mutedColor)),
           const SizedBox(height: 4),
           Text(lesson.title,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -232,7 +236,7 @@ class _ContinueCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '~${lesson.durationMinutes} min${lesson.isAudio ? ' • Audio available' : ''}',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 12, color: mutedColor),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -262,6 +266,7 @@ class _ChapterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mutedColor = Theme.of(context).colorScheme.onSurfaceVariant;
     var total = 0;
     var done = 0;
     for (final m in chapter.modules) {
@@ -275,13 +280,13 @@ class _ChapterCard extends StatelessWidget {
       return AppCard(
         child: Row(
           children: [
-            const Icon(Icons.lock_outline, color: Colors.grey),
+            Icon(Icons.lock_outline, color: mutedColor),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(title, style: const TextStyle(color: Colors.grey)),
+              child: Text(title, style: TextStyle(color: mutedColor)),
             ),
-            const Text('Locked',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text('Locked',
+                style: TextStyle(color: mutedColor, fontSize: 12)),
           ],
         ),
       );
@@ -306,7 +311,7 @@ class _ChapterCard extends StatelessWidget {
                   _ProgressBar(value: fraction),
                   const SizedBox(height: 4),
                   Text('$done of $total lessons',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      style: TextStyle(fontSize: 12, color: mutedColor)),
                 ],
               ),
             ),

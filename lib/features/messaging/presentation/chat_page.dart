@@ -137,7 +137,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     Text(
                       others.first.role,
                       style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade600),
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                 ],
               ),
@@ -232,16 +234,29 @@ class _DateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(12),
+            color: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+              width: 1,
+            ),
           ),
-          child: Text(label, style: const TextStyle(fontSize: 12)),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+              letterSpacing: 0.2,
+            ),
+          ),
         ),
       ),
     );
@@ -261,6 +276,7 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final maxWidth = MediaQuery.of(context).size.width * 0.78;
     final attachment = message.attachment;
 
@@ -278,19 +294,21 @@ class _Bubble extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: mine
                       ? AppColors.primary
-                      : Theme.of(context).colorScheme.surface,
+                      : (isDark ? AppColors.darkElevatedSurface : Colors.white),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
                     bottomLeft: Radius.circular(mine ? 16 : 4),
                     bottomRight: Radius.circular(mine ? 4 : 16),
                   ),
-                  border: mine || Theme.of(context).brightness != Brightness.dark
+                  border: mine
                       ? null
-                      : Border.all(color: Theme.of(context).dividerColor),
+                      : Border.all(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                        ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                       blurRadius: 6,
                     ),
                   ],
@@ -300,7 +318,7 @@ class _Bubble extends StatelessWidget {
                   style: TextStyle(
                     color: mine
                         ? Colors.white
-                        : Theme.of(context).colorScheme.onSurface,
+                        : (isDark ? AppColors.darkTextPrimary : const Color(0xFF1E221E)),
                     height: 1.35,
                   ),
                 ),
@@ -320,7 +338,10 @@ class _Bubble extends StatelessWidget {
             children: [
               Text(
                 clockTime(message.sentAt),
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                ),
               ),
               if (mine) ...[
                 const SizedBox(width: 5),
@@ -343,14 +364,14 @@ class _Bubble extends StatelessWidget {
                   Icon(
                     Icons.done,
                     size: 16,
-                    color: Colors.grey.shade400,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
                   ),
                   const SizedBox(width: 3),
                   Text(
                     'Sent',
                     style: TextStyle(
                       fontSize: 10.5,
-                      color: Colors.grey.shade500,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                     ),
                   ),
                 ],
@@ -403,14 +424,20 @@ class _AttachmentTile extends StatelessWidget {
                 ),
                 Text(
                   attachment.sizeLabel,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
           ),
           // TODO: make this download once the file-download endpoint is known.
           const SizedBox(width: 10),
-          Icon(Icons.download_outlined, color: Colors.grey.shade500),
+          Icon(
+            Icons.download_outlined,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ],
       ),
     );
@@ -430,21 +457,32 @@ class _InputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+          ),
+        ),
+      ),
       child: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
           child: Row(
             children: [
-                            IconButton(
+              IconButton(
                 onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Attachments are coming soon.'),
                   ),
                 ),
-                icon: const Icon(Icons.attach_file),
+                icon: Icon(
+                  Icons.attach_file,
+                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                ),
               ),
               Expanded(
                 child: TextField(
@@ -452,15 +490,39 @@ class _InputBar extends StatelessWidget {
                   minLines: 1,
                   maxLines: 4,
                   textCapitalization: TextCapitalization.sentences,
+                  keyboardAppearance: isDark ? Brightness.dark : Brightness.light,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    fontSize: 15,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Type your message...',
+                    hintStyle: TextStyle(
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+                      fontSize: 15,
+                    ),
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 10),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(22),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.darkBorder : Colors.transparent,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.darkBorder : Colors.transparent,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(22),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),

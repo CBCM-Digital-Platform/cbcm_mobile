@@ -37,6 +37,7 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
     final curriculum = ref.watch(curriculumControllerProvider);
 
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -79,13 +80,13 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'CURRICULUM KEY METRICS',
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.8,
-                    color: Color(0xFF6B7280),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                   ),
                 ),
                 Text(
@@ -111,20 +112,20 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Curriculum Breakdown',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF111827),
+                        color: isDark ? AppColors.darkTextPrimary : const Color(0xFF111827),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${data.totalChapters} Chapters • ${data.totalModules} Clinical Modules',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6B7280),
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                       ),
                     ),
                   ],
@@ -170,13 +171,13 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
             const SizedBox(height: 24),
 
             // 4. CLINICAL SUPPORT & SIMULATION
-            const Text(
+            Text(
               'CLINICAL SUPPORT & SIMULATION',
               style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.8,
-                color: Color(0xFF6B7280),
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
               ),
             ),
             const SizedBox(height: 12),
@@ -563,15 +564,18 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -587,10 +591,10 @@ class _MetricCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF4B5563),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF4B5563),
                   ),
                 ),
               ),
@@ -614,15 +618,15 @@ class _MetricCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: valueColor ?? const Color(0xFF1F2937),
+                      color: valueColor ?? (isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937)),
                     ),
                   ),
                   if (valueExtra != null) ...[
                     Text(
                       valueExtra!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF6B7280),
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                       ),
                     ),
                   ],
@@ -639,7 +643,7 @@ class _MetricCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: subtitleColor ?? const Color(0xFF6B7280),
+              color: subtitleColor ?? (isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280)),
             ),
           ),
         ],
@@ -677,6 +681,7 @@ class _ChapterTileState extends State<_ChapterTile> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isExpanded = widget.expanded ||
         _localExpanded ||
         widget.state == _ChapterState.active;
@@ -691,7 +696,7 @@ class _ChapterTileState extends State<_ChapterTile> {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB)),
         ),
         child: Column(
           children: [
@@ -781,9 +786,9 @@ class _ChapterTileState extends State<_ChapterTile> {
             // Expanded body with active module & subsequent modules
             if (isExpanded)
               Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : Colors.white,
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(15)),
                 ),
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -808,12 +813,12 @@ class _ChapterTileState extends State<_ChapterTile> {
       return Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
               blurRadius: 6,
               offset: const Offset(0, 1),
             ),
@@ -850,11 +855,11 @@ class _ChapterTileState extends State<_ChapterTile> {
                         children: [
                           Text(
                             'CHAPTER ${widget.chapter.number} • COMPLETED',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 0.5,
-                              color: Color(0xFF6B7280),
+                              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -862,10 +867,10 @@ class _ChapterTileState extends State<_ChapterTile> {
                             widget.chapter.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13.5,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1F2937),
+                              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                             ),
                           ),
                         ],
@@ -892,7 +897,7 @@ class _ChapterTileState extends State<_ChapterTile> {
                       isExpanded
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
-                      color: const Color(0xFF9CA3AF),
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF),
                       size: 20,
                     ),
                   ],
@@ -904,7 +909,7 @@ class _ChapterTileState extends State<_ChapterTile> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Column(
                   children: [
-                    const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                    Divider(height: 1, color: isDark ? AppColors.darkBorder : const Color(0xFFF3F4F6)),
                     const SizedBox(height: 8),
                     for (final m in widget.chapter.modules)
                       Material(
@@ -914,13 +919,18 @@ class _ChapterTileState extends State<_ChapterTile> {
                           contentPadding: EdgeInsets.zero,
                           title: Text(
                             'Module ${m.number}: ${m.title}',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 13),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
                           ),
                           trailing: Text(
                             '${m.completedLessons}/${m.totalLessons} (${m.percent.toStringAsFixed(0)}%)',
-                            style: const TextStyle(
-                                color: Color(0xFF6B7280), fontSize: 12),
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
+                              fontSize: 12,
+                            ),
                           ),
                           onTap: () =>
                               context.push(AppRoutes.moduleDetail, extra: m),
@@ -950,26 +960,26 @@ class _ChapterTileState extends State<_ChapterTile> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB)),
         ),
         child: Row(
           children: [
             Container(
               width: 34,
               height: 34,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF3F4F6),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkElevatedSurface : const Color(0xFFF3F4F6),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
                   '${widget.chapter.number}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: Color(0xFF6B7280),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                   ),
                 ),
               ),
@@ -981,11 +991,11 @@ class _ChapterTileState extends State<_ChapterTile> {
                 children: [
                   Text(
                     tagText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
-                      color: Color(0xFFD97706),
+                      color: isDark ? AppColors.pageIndicator : const Color(0xFFD97706),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -993,10 +1003,10 @@ class _ChapterTileState extends State<_ChapterTile> {
                     widget.chapter.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                     ),
                   ),
                 ],
@@ -1008,14 +1018,18 @@ class _ChapterTileState extends State<_ChapterTile> {
                 if (modulesLabel.isNotEmpty) ...[
                   Text(
                     modulesLabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
-                      color: Color(0xFF9CA3AF),
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF),
                     ),
                   ),
                   const SizedBox(width: 4),
                 ],
-                const Icon(Icons.lock_outline, size: 16, color: Color(0xFF9CA3AF)),
+                Icon(
+                  Icons.lock_outline,
+                  size: 16,
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF),
+                ),
               ],
             ),
           ],
@@ -1028,26 +1042,26 @@ class _ChapterTileState extends State<_ChapterTile> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB)),
       ),
       child: Row(
         children: [
           Container(
             width: 34,
             height: 34,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF3F4F6),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkElevatedSurface : const Color(0xFFF3F4F6),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 '${widget.chapter.number}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Color(0xFF9CA3AF),
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF),
                 ),
               ),
             ),
@@ -1057,13 +1071,13 @@ class _ChapterTileState extends State<_ChapterTile> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'LOCKED',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
-                    color: Color(0xFF9CA3AF),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1071,17 +1085,21 @@ class _ChapterTileState extends State<_ChapterTile> {
                   widget.chapter.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF6B7280),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.lock_outline, size: 16, color: Color(0xFF9CA3AF)),
+          Icon(
+            Icons.lock_outline,
+            size: 16,
+            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF),
+          ),
         ],
       ),
     );
@@ -1095,15 +1113,16 @@ class _ModuleSummaryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: () => context.push(AppRoutes.moduleDetail, extra: module),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
+          color: isDark ? AppColors.darkElevatedSurface : const Color(0xFFF9FAFB),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB)),
         ),
         child: Row(
           children: [
@@ -1113,9 +1132,9 @@ class _ModuleSummaryTile extends StatelessWidget {
                 children: [
                   Text(
                     'Module ${module.number}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF6B7280),
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1124,10 +1143,10 @@ class _ModuleSummaryTile extends StatelessWidget {
                     module.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                     ),
                   ),
                 ],
@@ -1138,17 +1157,17 @@ class _ModuleSummaryTile extends StatelessWidget {
               children: [
                 Text(
                   '${module.completedLessons}/${module.totalLessons} (${module.percent.toStringAsFixed(0)}%)',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(
+                Icon(
                   Icons.chevron_right,
                   size: 16,
-                  color: Color(0xFF9CA3AF),
+                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF),
                 ),
               ],
             ),
@@ -1168,12 +1187,13 @@ class _ActiveModuleBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8F6),
+        color: isDark ? AppColors.darkElevatedSurface : const Color(0xFFF7F8F6),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1199,13 +1219,13 @@ class _ActiveModuleBlock extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFBBF7D0),
+                  color: isDark ? AppColors.primary.withValues(alpha: 0.3) : const Color(0xFFBBF7D0),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '${module.completedLessons} of ${module.totalLessons} Done',
-                  style: const TextStyle(
-                    color: Color(0xFF166534),
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF166534),
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1216,10 +1236,10 @@ class _ActiveModuleBlock extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             module.title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1F2937),
+              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
             ),
           ),
           const SizedBox(height: 12),
@@ -1262,14 +1282,15 @@ class _LessonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (lesson.status == LessonStatus.inProgress) {
       return Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFBEB),
+          color: isDark ? AppColors.darkElevatedSurface : const Color(0xFFFFFBEB),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFFDE68A)),
+          border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFFDE68A)),
         ),
         child: Row(
           children: [
@@ -1287,18 +1308,18 @@ class _LessonCard extends StatelessWidget {
                     'Lesson $index: ${lesson.title}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
+                      color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'In Progress (${lesson.progressPercent.toStringAsFixed(0)}% Complete)',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFFB45309),
+                      color: isDark ? AppColors.pageIndicator : const Color(0xFFB45309),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1337,9 +1358,9 @@ class _LessonCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB)),
       ),
       child: Row(
         children: [
@@ -1350,7 +1371,7 @@ class _LessonCard extends StatelessWidget {
             size: 20,
             color: isCompleted
                 ? const Color(0xFF16A34A)
-                : const Color(0xFF9CA3AF),
+                : (isDark ? AppColors.darkTextSecondary : const Color(0xFF9CA3AF)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1358,18 +1379,18 @@ class _LessonCard extends StatelessWidget {
               'Lesson $index: ${lesson.title}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF1F2937),
+                color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
               ),
             ),
           ),
           const SizedBox(width: 8),
           Text(
             isQuiz ? 'Req. 80%' : '${lesson.durationMinutes}m',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF6B7280),
+              color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
             ),
           ),
         ],
@@ -1386,6 +1407,7 @@ class _MentorPreceptorCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final mentors = ref.watch(mentorContactsProvider);
     final mentor = mentors.isNotEmpty ? mentors.first : null;
     final mentorName = mentor?.fullName ?? 'Assigned Mentor';
@@ -1393,12 +1415,12 @@ class _MentorPreceptorCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1413,10 +1435,10 @@ class _MentorPreceptorCard extends ConsumerWidget {
                 backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                 child: Text(
                   mentorName.isNotEmpty ? mentorName[0].toUpperCase() : 'M',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
-                    color: AppColors.primary,
+                    color: isDark ? AppColors.primaryLight : AppColors.primary,
                   ),
                 ),
               ),
@@ -1430,10 +1452,10 @@ class _MentorPreceptorCard extends ConsumerWidget {
                         Flexible(
                           child: Text(
                             mentorName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1F2937),
+                              color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1452,9 +1474,9 @@ class _MentorPreceptorCard extends ConsumerWidget {
                       mentor != null
                           ? (mentor.role.isNotEmpty ? mentor.role : 'Mentor')
                           : 'No mentor assigned yet',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6B7280),
+                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                       ),
                     ),
                   ],
@@ -1468,7 +1490,7 @@ class _MentorPreceptorCard extends ConsumerWidget {
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFD1D5DB)),
+                    side: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFD1D5DB)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -1483,14 +1505,14 @@ class _MentorPreceptorCard extends ConsumerWidget {
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(Icons.chat_bubble_outline,
-                          size: 16, color: Color(0xFF1F2937)),
-                      SizedBox(width: 8),
+                          size: 16, color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937)),
+                      const SizedBox(width: 8),
                       Text(
                         'Message',
                         style: TextStyle(
-                          color: Color(0xFF1F2937),
+                          color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -1553,15 +1575,18 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sessionsAsync = ref.watch(menteeSessionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return sessionsAsync.when(
       loading: () => Container(
         height: 90,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+          ),
         ),
         child: const SizedBox(
           width: 24,
@@ -1569,31 +1594,39 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (sessions) {
         if (sessions.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurface : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+              ),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.event_note, color: Colors.grey),
+                  child: Icon(
+                    Icons.event_note,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                  ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'No upcoming supervision sessions. Book one with your mentor above!',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -1613,12 +1646,14 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? AppColors.darkSurface : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -1664,10 +1699,10 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
                       children: [
                         Text(
                           session.sessionType.toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF166534),
+                            color: isDark ? AppColors.pageIndicator : const Color(0xFF166534),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -1680,18 +1715,18 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
                                   : 'Clinical Supervision Session'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1F2937),
+                            color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           timeStr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11.5,
-                            color: Color(0xFF6B7280),
+                            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                           ),
                         ),
                       ],
@@ -1713,17 +1748,17 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
                         );
                       },
                       child: Row(
-                        children: const [
+                        children: [
                           Icon(
                             Icons.videocam_outlined,
                             size: 16,
-                            color: AppColors.primary,
+                            color: isDark ? AppColors.primaryLight : AppColors.primary,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             'Join Virtual Room',
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: isDark ? AppColors.primaryLight : AppColors.primary,
                               fontWeight: FontWeight.bold,
                               fontSize: 12.5,
                             ),
@@ -1734,16 +1769,16 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
                   else
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.location_on_outlined,
                           size: 16,
-                          color: Colors.grey,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           session.location ?? 'In-Person Facility',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                             fontWeight: FontWeight.w600,
                             fontSize: 12.5,
                           ),
@@ -1754,13 +1789,15 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
+                      color: isDark
+                          ? AppColors.primary.withValues(alpha: 0.25)
+                          : const Color(0xFFDCFCE7),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       session.isVirtual ? 'Virtual Jitsi' : 'Confirmed',
-                      style: const TextStyle(
-                        color: Color(0xFF166534),
+                      style: TextStyle(
+                        color: isDark ? AppColors.primaryLight : const Color(0xFF166534),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1781,15 +1818,18 @@ class _HandbookResourceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1801,22 +1841,20 @@ class _HandbookResourceCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: isDark ? AppColors.darkElevatedSurface : const Color(0xFFEFF6FF),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Center(
-              child: Icon(
-                Icons.folder_open_outlined,
-                color: Color(0xFF1D4ED8),
-                size: 22,
-              ),
+            child: Icon(
+              Icons.folder_open_outlined,
+              color: isDark ? AppColors.pageIndicator : const Color(0xFF1D4ED8),
+              size: 22,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'Clinical Learning Resources',
                   maxLines: 1,
@@ -1824,15 +1862,15 @@ class _HandbookResourceCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
+                    color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Browse guidelines, protocols, and reference materials',
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: Color(0xFF6B7280),
+                    color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
                   ),
                 ),
               ],

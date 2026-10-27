@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/audio/read_aloud_controller.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
+import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/read_aloud_bar.dart';
 import '../domain/curriculum.dart';
@@ -39,6 +40,9 @@ class _LessonReaderPageState extends ConsumerState<LessonReaderPage> {
     final lesson = widget.lesson;
     final completed = lesson.status == LessonStatus.completed;
 
+    final mutedColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(title: Text(lesson.title)),
       body: Column(
@@ -58,10 +62,10 @@ class _LessonReaderPageState extends ConsumerState<LessonReaderPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.schedule,
-                              size: 16, color: Colors.grey.shade600),
+                              size: 16, color: mutedColor),
                           const SizedBox(width: 4),
                           Text('${lesson.durationMinutes} min',
-                              style: TextStyle(color: Colors.grey.shade600)),
+                              style: TextStyle(color: mutedColor)),
                         ],
                       ),
                       if (lesson.isAudio)
@@ -69,10 +73,10 @@ class _LessonReaderPageState extends ConsumerState<LessonReaderPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.headphones,
-                                size: 16, color: Colors.grey.shade600),
+                                size: 16, color: mutedColor),
                             const SizedBox(width: 4),
                             Text('Audio available',
-                                style: TextStyle(color: Colors.grey.shade600)),
+                                style: TextStyle(color: mutedColor)),
                           ],
                         ),
                     ],
@@ -90,7 +94,7 @@ class _LessonReaderPageState extends ConsumerState<LessonReaderPage> {
           ),
           ReadAloudBar(reader: _reader, safeBottom: false),
           Container(
-            color: Colors.white,
+            color: isDark ? AppColors.darkSurface : Colors.white,
             child: SafeArea(
               top: false,
               child: Padding(

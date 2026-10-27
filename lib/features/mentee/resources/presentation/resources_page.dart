@@ -180,17 +180,42 @@ class _ResourcesPageState extends ConsumerState<ResourcesPage> {
   }
 
   Widget _chip(String label, bool selected, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        showCheckmark: false,
-        selectedColor: AppColors.primary,
-        backgroundColor: Colors.grey.shade200,
-        labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87),
-        side: BorderSide.none,
-        onSelected: (_) => onTap(),
+      child: Material(
+        color: selected
+            ? AppColors.primary
+            : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          splashColor: AppColors.primary.withValues(alpha: 0.2),
+          highlightColor: AppColors.primary.withValues(alpha: 0.1),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selected
+                    ? AppColors.primary
+                    : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                width: 1.2,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected
+                    ? Colors.white
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

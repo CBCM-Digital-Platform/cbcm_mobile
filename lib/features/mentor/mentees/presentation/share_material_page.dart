@@ -133,35 +133,42 @@ class _ShareMaterialPageState extends ConsumerState<ShareMaterialPage> {
           const SizedBox(height: 20),
           const Text('File', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          InkWell(
-            onTap: _pick,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return InkWell(
+                onTap: _pick,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _file == null ? Icons.upload_file : Icons.insert_drive_file,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _file == null
-                          ? 'Choose a file (PDF, video, audio...)'
-                          : '${_file!.name}  •  ${_size(_fileSize)}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                     ),
                   ),
-                ],
-              ),
-            ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _file == null ? Icons.upload_file : Icons.insert_drive_file,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _file == null
+                              ? 'Choose a file (PDF, video, audio...)'
+                              : '${_file!.name}  •  ${_size(_fileSize)}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 20),
           const Text('Share with', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -182,17 +189,37 @@ class _ShareMaterialPageState extends ConsumerState<ShareMaterialPage> {
               }),
             ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _note,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Add a note (optional)',
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return TextField(
+                controller: _note,
+                maxLines: 3,
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextPrimary : null,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Add a note (optional)',
+                  hintStyle: TextStyle(
+                    color: isDark ? AppColors.darkTextSecondary : null,
+                  ),
+                  filled: true,
+                  fillColor: isDark ? AppColors.darkSurface : Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
           SizedBox(

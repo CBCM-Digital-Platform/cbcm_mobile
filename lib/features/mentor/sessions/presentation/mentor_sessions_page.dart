@@ -43,6 +43,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
   @override
   Widget build(BuildContext context) {
     final sessionsAsync = ref.watch(mentorSessionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -83,16 +84,17 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
                 margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: isDark ? AppColors.darkSurface : Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(12),
+                  border: isDark ? Border.all(color: AppColors.darkBorder) : null,
                 ),
                 child: Row(
                   children: [
                     Expanded(
-                      child: _buildTabButton('Upcoming', 0),
+                      child: _buildTabButton('Upcoming', 0, isDark),
                     ),
                     Expanded(
-                      child: _buildTabButton('Past & Completed', 1),
+                      child: _buildTabButton('Past & Completed', 1, isDark),
                     ),
                   ],
                 ),
@@ -141,7 +143,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
                                     ? Icons.event_available_outlined
                                     : Icons.history_outlined,
                                 size: 54,
-                                color: Colors.grey.shade400,
+                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -151,7 +153,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.grey.shade700,
+                                  color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade700,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -161,7 +163,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
                                     : 'Completed sessions will appear here.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Colors.grey.shade600,
+                                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                                   fontSize: 13,
                                 ),
                               ),
@@ -174,7 +176,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
                     return ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                       itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final session = filtered[index];
                         return SessionCard(
@@ -201,19 +203,21 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
     );
   }
 
-  Widget _buildTabButton(String label, int index) {
+  Widget _buildTabButton(String label, int index, bool isDark) {
     final isSelected = _selectedTab == index;
     return GestureDetector(
       onTap: () => setState(() => _selectedTab = index),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
+          color: isSelected
+              ? (isDark ? AppColors.primary : Colors.white)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 1),
                   ),
@@ -226,7 +230,9 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? AppColors.primary : Colors.grey.shade700,
+              color: isSelected
+                  ? (isDark ? Colors.white : AppColors.primary)
+                  : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700),
             ),
           ),
         ),
@@ -249,6 +255,7 @@ class SessionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isVirtual = session.isVirtual;
     final partnerName = isMenteeView
         ? (session.mentorName ?? 'Mentor')
@@ -265,10 +272,10 @@ class SessionCard extends ConsumerWidget {
             children: [
               Text(
                 _formatDateTime(session.scheduledStartTime),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey,
+                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                 ),
               ),
               Container(
@@ -276,8 +283,8 @@ class SessionCard extends ConsumerWidget {
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: isVirtual
-                      ? Colors.teal.withValues(alpha: 0.12)
-                      : Colors.orange.withValues(alpha: 0.12),
+                      ? (isDark ? Colors.teal.withValues(alpha: 0.25) : Colors.teal.withValues(alpha: 0.12))
+                      : (isDark ? Colors.orange.withValues(alpha: 0.25) : Colors.orange.withValues(alpha: 0.12)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -288,7 +295,7 @@ class SessionCard extends ConsumerWidget {
                           ? Icons.videocam_outlined
                           : Icons.location_on_outlined,
                       size: 14,
-                      color: isVirtual ? Colors.teal : Colors.orange.shade800,
+                      color: isVirtual ? (isDark ? Colors.tealAccent : Colors.teal) : Colors.orange.shade800,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -296,7 +303,7 @@ class SessionCard extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: isVirtual ? Colors.teal : Colors.orange.shade800,
+                        color: isVirtual ? (isDark ? Colors.tealAccent : Colors.teal) : Colors.orange.shade800,
                       ),
                     ),
                   ],
@@ -312,7 +319,7 @@ class SessionCard extends ConsumerWidget {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                child: Icon(Icons.person, color: AppColors.primary),
+                child: Icon(Icons.person, color: isDark ? AppColors.primaryLight : AppColors.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -321,9 +328,10 @@ class SessionCard extends ConsumerWidget {
                   children: [
                     Text(
                       partnerName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
                     Text(
@@ -332,7 +340,7 @@ class SessionCard extends ConsumerWidget {
                           : '$roleSubtitle • ${session.sessionType}',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -345,12 +353,15 @@ class SessionCard extends ConsumerWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.pin_drop_outlined,
-                    size: 14, color: Colors.grey),
+                Icon(Icons.pin_drop_outlined,
+                    size: 14, color: isDark ? AppColors.darkTextSecondary : Colors.grey),
                 const SizedBox(width: 4),
                 Text(
                   session.location!,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),

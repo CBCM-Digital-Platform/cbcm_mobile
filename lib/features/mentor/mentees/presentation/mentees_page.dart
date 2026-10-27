@@ -57,34 +57,53 @@ class _MenteesPageState extends ConsumerState<MenteesPage> {
               const SizedBox(height: 4),
               Text(
                 'Manage and track your assigned nursing students.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTextSecondary
+                      : Colors.grey.shade600,
+                  fontSize: 13,
+                ),
               ),
               const SizedBox(height: 16),
 
               // Search bar
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'Search mentees by name or ID...',
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 14,
+              Builder(
+                builder: (context) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                      ),
                     ),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                        fontSize: 14,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Search mentees by name or ID...',
+                        hintStyle: TextStyle(
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
+                          fontSize: 14,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 12),
 
@@ -93,6 +112,7 @@ class _MenteesPageState extends ConsumerState<MenteesPage> {
                 children: [
                   Expanded(
                     child: _buildFilterDropdown(
+                      context: context,
                       value: _selectedFacility,
                       items: const [
                         'All Facilities',
@@ -108,6 +128,7 @@ class _MenteesPageState extends ConsumerState<MenteesPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildFilterDropdown(
+                      context: context,
                       value: _selectedLevel,
                       items: const [
                         'All Levels',
@@ -194,30 +215,46 @@ class _MenteesPageState extends ConsumerState<MenteesPage> {
   }
 
   Widget _buildFilterDropdown({
+    required BuildContext context,
     required String value,
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+        ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
-          style: const TextStyle(
+          dropdownColor: isDark ? AppColors.darkElevatedSurface : Colors.white,
+          style: TextStyle(
             fontSize: 13,
-            color: Colors.black87,
+            color: isDark ? AppColors.darkTextPrimary : Colors.black87,
             fontWeight: FontWeight.w500,
           ),
-          icon: Icon(Icons.keyboard_arrow_down,
-              size: 20, color: Colors.grey.shade600),
+          icon: Icon(
+            Icons.keyboard_arrow_down,
+            size: 20,
+            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+          ),
           items: items
-              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+              .map((item) => DropdownMenuItem(
+                    value: item,
+                    child: Text(
+                      item,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                      ),
+                    ),
+                  ))
               .toList(),
           onChanged: onChanged,
         ),
@@ -237,6 +274,7 @@ class _MenteeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final subtitle = [
       if (mentee.facility.isNotEmpty) mentee.facility,
       if (mentee.level.isNotEmpty) mentee.level,
@@ -264,7 +302,7 @@ class _MenteeCard extends ConsumerWidget {
                           mentee.fullName.isNotEmpty
                               ? mentee.fullName[0].toUpperCase()
                               : 'M',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
@@ -280,7 +318,10 @@ class _MenteeCard extends ConsumerWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: mentee.isOnline ? Colors.green : Colors.grey,
-                            border: Border.all(color: Colors.white, width: 2),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkSurface : Colors.white,
+                              width: 2,
+                            ),
                           ),
                         ),
                       ),
@@ -293,9 +334,10 @@ class _MenteeCard extends ConsumerWidget {
                       children: [
                         Text(
                           mentee.fullName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                            color: isDark ? AppColors.darkTextPrimary : null,
                           ),
                         ),
                         if (subtitle.isNotEmpty) ...[
@@ -304,14 +346,17 @@ class _MenteeCard extends ConsumerWidget {
                             subtitle,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                             ),
                           ),
                         ],
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                  Icon(
+                    Icons.chevron_right,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -324,13 +369,17 @@ class _MenteeCard extends ConsumerWidget {
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: mentee.needsReview
-                          ? Colors.red.shade50
-                          : Colors.green.shade50,
+                          ? (isDark
+                              ? Colors.red.shade900.withValues(alpha: 0.35)
+                              : Colors.red.shade50)
+                          : (isDark
+                              ? Colors.green.shade900.withValues(alpha: 0.35)
+                              : Colors.green.shade50),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: mentee.needsReview
-                            ? Colors.red.shade200
-                            : Colors.green.shade200,
+                            ? (isDark ? Colors.red.shade700 : Colors.red.shade200)
+                            : (isDark ? Colors.green.shade700 : Colors.green.shade200),
                       ),
                     ),
                     child: Row(
@@ -342,8 +391,8 @@ class _MenteeCard extends ConsumerWidget {
                               : Icons.check_circle_outline,
                           size: 13,
                           color: mentee.needsReview
-                              ? Colors.red.shade700
-                              : Colors.green.shade700,
+                              ? (isDark ? Colors.red.shade300 : Colors.red.shade700)
+                              : (isDark ? Colors.green.shade300 : Colors.green.shade700),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -352,8 +401,8 @@ class _MenteeCard extends ConsumerWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: mentee.needsReview
-                              ? Colors.red.shade700
-                              : Colors.green.shade700,
+                                ? (isDark ? Colors.red.shade300 : Colors.red.shade700)
+                                : (isDark ? Colors.green.shade300 : Colors.green.shade700),
                           ),
                         ),
                       ],
@@ -364,16 +413,18 @@ class _MenteeCard extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
+                      color: isDark ? const Color(0xFF1E3A5F) : const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF2563EB) : const Color(0xFFBFDBFE),
+                      ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Clinical Practicum',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1D4ED8),
+                        color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
                       ),
                     ),
                   ),
@@ -440,13 +491,18 @@ class _MenteeCard extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        child: SingleChildScrollView(
+      builder: (sheetContext) {
+        final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.9,
+          ),
+          child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +512,7 @@ class _MenteeCard extends ConsumerWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -478,7 +534,11 @@ class _MenteeCard extends ConsumerWidget {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                    icon: Icon(
+                      Icons.close,
+                      size: 20,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -492,7 +552,7 @@ class _MenteeCard extends ConsumerWidget {
                     backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                     child: Text(
                       mentee.fullName.isNotEmpty ? mentee.fullName[0].toUpperCase() : 'M',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
@@ -506,16 +566,26 @@ class _MenteeCard extends ConsumerWidget {
                       children: [
                         Text(
                           mentee.fullName,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextPrimary : null,
+                          ),
                         ),
                         if (mentee.email.isNotEmpty)
                           Text(
                             mentee.email,
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                            ),
                           ),
                         Text(
                           '${mentee.facility} • ${mentee.level}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+                          ),
                         ),
                       ],
                     ),
@@ -523,16 +593,20 @@ class _MenteeCard extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
+                      color: isDark
+                          ? Colors.green.shade900.withValues(alpha: 0.35)
+                          : Colors.green.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade200),
+                      border: Border.all(
+                        color: isDark ? Colors.green.shade700 : Colors.green.shade200,
+                      ),
                     ),
                     child: Text(
                       'Enrolled',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green.shade700,
+                        color: isDark ? Colors.green.shade300 : Colors.green.shade700,
                       ),
                     ),
                   ),
@@ -546,7 +620,7 @@ class _MenteeCard extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800,
+                  color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
                 ),
               ),
               const SizedBox(height: 8),
@@ -562,7 +636,7 @@ class _MenteeCard extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
+                      color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
                     ),
                   ),
                 ],
@@ -572,13 +646,18 @@ class _MenteeCard extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
                 ),
                 child: Text(
                   'No data yet',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -590,15 +669,21 @@ class _MenteeCard extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      icon: Icon(Icons.add_task, size: 18, color: Colors.grey.shade400),
+                      icon: Icon(
+                        Icons.add_task,
+                        size: 18,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
+                      ),
                       label: Text(
                         'Assign Task (Coming soon)',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade500,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                         ),
                       ),
                       onPressed: null,
@@ -609,15 +694,21 @@ class _MenteeCard extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      icon: Icon(Icons.quiz_outlined, size: 18, color: Colors.grey.shade400),
+                      icon: Icon(
+                        Icons.quiz_outlined,
+                        size: 18,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade400,
+                      ),
                       label: Text(
                         'Assign Quiz (Coming soon)',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade500,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                         ),
                       ),
                       onPressed: null,
@@ -710,9 +801,10 @@ class _MenteeCard extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   void _showAssignTaskDialog(BuildContext context, WidgetRef ref, AssignedMentee mentee) {
     final titleController = TextEditingController(text: 'Clinical Case Study: Maternal Hemorrhage Protocol');
@@ -772,7 +864,12 @@ class _MenteeCard extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Text(
                           '${dueDate.year}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}',
-                          style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextSecondary
+                                : Colors.grey.shade700,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
@@ -903,18 +1000,35 @@ class _MenteeCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF1E3A5F)
+                        : Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade100),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF2563EB)
+                          : Colors.blue.shade100,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 18, color: Colors.blue.shade700),
+                      Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF93C5FD)
+                            : Colors.blue.shade700,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           '${mentee.fullName} will be notified immediately to take this quiz before their next scheduled clinical review.',
-                          style: TextStyle(fontSize: 11.5, color: Colors.blue.shade900),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF93C5FD)
+                                : Colors.blue.shade900,
+                          ),
                         ),
                       ),
                     ],

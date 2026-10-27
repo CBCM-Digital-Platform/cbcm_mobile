@@ -92,7 +92,12 @@ class MentorDashboardPage extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   'No sessions scheduled for today.',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextSecondary
+                        : Colors.grey.shade600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             for (final item in data.todaySchedule) _ScheduleCard(item: item),
@@ -108,7 +113,12 @@ class MentorDashboardPage extends ConsumerWidget {
             if (data.recentActivity.isEmpty)
               Text(
                 'No recent activity yet.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTextSecondary
+                      : Colors.grey.shade600,
+                  fontSize: 13,
+                ),
               )
             else
               AppCard(
@@ -132,28 +142,49 @@ class _ScheduleCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: AppCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(item.time, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+            Text(
+              item.time,
+              style: TextStyle(
+                color: isDark ? AppColors.pageIndicator : Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
                 item.isGroup
                     ? CircleAvatar(
                         backgroundColor: AppColors.pageIndicator.withValues(alpha: 0.3),
-                        child: Icon(Icons.groups, color: AppColors.primary))
-                    : const CircleAvatar(child: Icon(Icons.person)),
+                        child: Icon(Icons.groups, color: isDark ? AppColors.pageIndicator : AppColors.primary))
+                    : CircleAvatar(
+                        backgroundColor: isDark ? AppColors.darkElevatedSurface : null,
+                        child: Icon(Icons.person, color: isDark ? AppColors.darkTextPrimary : null)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text(item.subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                      Text(
+                        item.title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.darkTextPrimary : null,
+                        ),
+                      ),
+                      Text(
+                        item.subtitle,
+                        style: TextStyle(
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -199,6 +230,7 @@ class _ActivityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final (icon, color) = switch (item.icon) {
       ActivityIconType.logbookSubmitted => (Icons.description_outlined, Colors.green),
       ActivityIconType.clarificationRequested => (Icons.help_outline, Colors.amber),
@@ -216,18 +248,36 @@ class _ActivityRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.description),
+                Text(
+                  item.description,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextPrimary : null,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(item.timeAgo, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(
+                  item.timeAgo,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
                 if (item.tag != null) ...[
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(6),
+                      border: isDark ? Border.all(color: AppColors.darkBorder) : null,
                     ),
-                    child: Text(item.tag!, style: const TextStyle(fontSize: 11)),
+                    child: Text(
+                      item.tag!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? AppColors.darkTextPrimary : null,
+                      ),
+                    ),
                   ),
                 ],
               ],

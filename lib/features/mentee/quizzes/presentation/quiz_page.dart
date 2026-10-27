@@ -111,16 +111,23 @@ class _QuizPageState extends ConsumerState<QuizPage> {
           : (last ? _submit : () => setState(() => _index++)),
     );
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Question ${_index + 1} of ${quiz.questions.length}',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+        Text(
+          'Question ${_index + 1} of ${quiz.questions.length}',
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+            fontSize: 12,
+          ),
+        ),
         const SizedBox(height: 6),
         LinearProgressIndicator(
           value: (_index + 1) / quiz.questions.length,
           color: AppColors.primary,
-          backgroundColor: Colors.grey.shade300,
+          backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade300,
         ),
         const SizedBox(height: 20),
         Text(q.prompt,
