@@ -154,6 +154,52 @@ class DioAuthRepository implements AuthRepository {
     }
   }
 
+  @override
+  Future<void> requestPasswordResetOtp({required String email}) async {
+    try {
+      await _dio.post(
+        ApiEndpoints.forgotOtp,
+        data: {'email': email.trim()},
+      );
+    } on DioException catch (e) {
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  @override
+  Future<void> resetPasswordWithOtp({
+    required String email,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      await _dio.post(
+        ApiEndpoints.resetOtp,
+        data: {
+          'email': email.trim(),
+          'otp': otp.trim(),
+          'new_password': newPassword,
+          'confirm_password': confirmPassword,
+        },
+      );
+    } on DioException catch (e) {
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  @override
+  Future<void> requestPasswordResetLink({required String email}) async {
+    try {
+      await _dio.post(
+        ApiEndpoints.forgotPassword,
+        data: {'email': email.trim()},
+      );
+    } on DioException catch (e) {
+      throw apiExceptionFromDio(e);
+    }
+  }
+
   // --- Response reading helpers --------------------------------------
 
   dynamic _pick(

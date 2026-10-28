@@ -1,3 +1,4 @@
+import '../features/auth/presentation/forgot_password_page.dart';
 import '../features/certificates/presentation/certificates_page.dart';
 import '../features/assessments/assessments_page.dart';
 import '../features/help/presentation/help_page.dart';
@@ -51,7 +52,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Signed out: only the welcome and login screens.
       if (role == null) {
-        final isPublic = path == AppRoutes.home || path == AppRoutes.login;
+        final isPublic = path == AppRoutes.home || path == AppRoutes.login || path == AppRoutes.forgotPassword;
         return isPublic ? null : AppRoutes.login;
       }
 
@@ -83,6 +84,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (context, state) => ForgotPasswordPage(
+          initialEmail: state.uri.queryParameters['email'],
+        ),
       ),
       GoRoute(
         path: AppRoutes.resetPassword,

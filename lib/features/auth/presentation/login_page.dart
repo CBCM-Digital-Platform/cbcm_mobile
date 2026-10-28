@@ -131,12 +131,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               padding: EdgeInsets.zero,
                               minimumSize: const Size(0, 0),
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                          onPressed: () => ScaffoldMessenger.of(context)
-                              .showSnackBar(const SnackBar(
-                            content: Text(
-                                'Password reset by email code is coming soon.'),
-                          )),
-                          child: Text('Forgot credentials?',
+                          onPressed: () {
+                            final email = _emailController.text.trim();
+                            context.push(
+                              email.isNotEmpty
+                                  ? '${AppRoutes.forgotPassword}?email=${Uri.encodeComponent(email)}'
+                                  : AppRoutes.forgotPassword,
+                            );
+                          },
+                          child: Text('Forgot password?',
                               style: TextStyle(color: AppColors.primary)),
                         ),
                       ],

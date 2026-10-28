@@ -13,6 +13,8 @@ class ApiEndpoints {
   static const refreshToken = '/auth/refresh-token';
   static const logout = '/auth/logout';
   static const forgotPassword = '/auth/forgot-password';
+  static const forgotOtp = '/auth/forgot-otp';
+  static const resetOtp = '/auth/reset-otp';
   static const resetPassword = '/auth/reset-password';
   static const changePassword = '/auth/change-password';
   static const session = '/auth/session';

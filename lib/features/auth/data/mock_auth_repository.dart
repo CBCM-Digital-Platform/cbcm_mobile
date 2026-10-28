@@ -124,4 +124,24 @@ class MockAuthRepository implements AuthRepository {
     await _storage.write('mock_password:${account.id}', newPassword);
     await _storage.write('mock_must_change:${account.id}', 'false');
   }
+
+  @override
+  Future<void> requestPasswordResetOtp({required String email}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+  }
+
+  @override
+  Future<void> resetPasswordWithOtp({
+    required String email,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+  }
+
+  @override
+  Future<void> requestPasswordResetLink({required String email}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+  }
 }

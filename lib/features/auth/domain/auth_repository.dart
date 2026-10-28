@@ -13,4 +13,18 @@ abstract class AuthRepository {
     required String currentPassword,
     required String newPassword,
   });
+
+  /// Requests a 6-digit OTP code sent to the given email for password reset.
+  Future<void> requestPasswordResetOtp({required String email});
+
+  /// Resets password using the 6-digit OTP received via email.
+  Future<void> resetPasswordWithOtp({
+    required String email,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  });
+
+  /// Requests a password reset link by email.
+  Future<void> requestPasswordResetLink({required String email});
 }
