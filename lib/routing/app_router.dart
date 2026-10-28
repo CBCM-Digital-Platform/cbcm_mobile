@@ -1,3 +1,5 @@
+import '../features/certificates/presentation/certificates_page.dart';
+import '../features/assessments/assessments_page.dart';
 import '../features/help/presentation/help_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -128,6 +130,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.menteeLogbook,
         builder: (context, state) => const MenteeLogbookPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.menteeAssessments,
+        builder: (context, state) => const AssessmentsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.menteeCertificates,
+        builder: (context, state) => const CertificatesPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

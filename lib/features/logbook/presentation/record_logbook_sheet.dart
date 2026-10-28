@@ -1,3 +1,4 @@
+import '../../../core/network/api_response.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/colors.dart';
@@ -84,16 +85,37 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
     super.dispose();
   }
 
-  Future<void> _loadMetadata() async {
-    final areas = await ref.read(logbookRepositoryProvider).getThematicAreas();
-    if (mounted) {
-      setState(() {
-        _thematicAreas = areas;
-        if (areas.isNotEmpty) {
-          _selectedThematicAreaId = areas.first['id'] as int;
-        }
-      });
+  AssignedMentee? _getMentee(int? id) {
+    if (id == null) return null;
+    final list = ref.read(assignedMenteesProvider).value ?? [];
+    for (final m in list) {
+      if (m.id == id) return m;
     }
+    return null;
+  }
+
+  Future<void> _loadMetadata({int? menteeId}) async {
+    final repo = ref.read(logbookRepositoryProvider);
+    final mentee = _getMentee(menteeId ?? _selectedMenteeId);
+    final cycleId = mentee?.cycleId ?? await repo.getActiveCycleId();
+
+    final areas = await repo.getThematicAreasForCycle(cycleId);
+    if (!mounted) return;
+
+    setState(() {
+      _thematicAreas = areas;
+      if (areas.isNotEmpty) {
+        // If the mentee is already assigned to a specific thematic area in that cycle, use it
+        final menteeArea = mentee?.thematicAreaId;
+        final hasMenteeArea = areas.any((a) => a['id'] == menteeArea);
+        _selectedThematicAreaId = (hasMenteeArea ? menteeArea : areas.first['id']) as int;
+      }
+    });
+  }
+
+  void _onMenteeChanged(int? newId) {
+    setState(() => _selectedMenteeId = newId);
+    _loadMetadata(menteeId: newId);
   }
 
   Future<void> _submit() async {
@@ -109,7 +131,8 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
 
     try {
       final repo = ref.read(logbookRepositoryProvider);
-      final cycleId = await repo.getActiveCycleId();
+      final mentee = _getMentee(_selectedMenteeId);
+      final cycleId = mentee?.cycleId ?? await repo.getActiveCycleId();
 
       final req = CreateLogbookRequest(
         menteeId: _selectedMenteeId!,
@@ -148,8 +171,9 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _submitting = false);
+        final errorMsg = e is ApiException ? e.error.message : e.toString();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to record logbook: $e')),
+          SnackBar(content: Text(errorMsg)),
         );
       }
     }
@@ -232,7 +256,7 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
                           child: Text(m.fullName),
                         ),
                     ],
-                    onChanged: (val) => setState(() => _selectedMenteeId = val),
+                    onChanged: _onMenteeChanged,
                   );
                 },
               ),

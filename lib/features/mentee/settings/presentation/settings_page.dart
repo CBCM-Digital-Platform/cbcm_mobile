@@ -1,13 +1,9 @@
-import 'package:go_router/go_router.dart';
-import '../../../../routing/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_info.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/theme_mode_provider.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../auth/presentation/current_role_provider.dart';
-import '../../../auth/presentation/logout_dialog.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -15,7 +11,6 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    final role = ref.watch(currentRoleProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -89,79 +84,6 @@ class SettingsPage extends ConsumerWidget {
                       .setThemeMode(ThemeMode.dark),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Section: Account
-          _buildSectionHeader(context, 'Account'),
-          const SizedBox(height: 8),
-          AppCard(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.person_outline),
-                  title: const Text('Role'),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      role?.name.toUpperCase() ?? 'GUEST',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: AppColors.destructive),
-                  title: const Text(
-                    'Log Out',
-                    style: TextStyle(color: AppColors.destructive),
-                  ),
-                  onTap: () => confirmAndLogout(context, ref),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Section: Clinical Mentorship
-          _buildSectionHeader(context, 'Clinical Mentorship'),
-          const SizedBox(height: 8),
-          AppCard(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            child: ListTile(
-              leading: const Icon(Icons.menu_book_outlined, color: AppColors.primary),
-              title: const Text('Clinical Logbook'),
-              subtitle: const Text('Verified procedures & mentor feedback'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push(AppRoutes.menteeLogbook),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Section: Support
-          _buildSectionHeader(context, 'Support'),
-          const SizedBox(height: 8),
-          AppCard(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            child: ListTile(
-              leading: const Icon(Icons.help_outline),
-              title: const Text('Help & support'),
-              subtitle: const Text('FAQs and user guides'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push(AppRoutes.help),
             ),
           ),
           const SizedBox(height: 24),

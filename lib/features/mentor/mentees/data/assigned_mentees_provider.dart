@@ -18,6 +18,9 @@ class AssignedMentee {
     required this.pendingLogbooks,
     required this.needsReview,
     required this.isOnline,
+    this.facilityId,
+    this.cycleId,
+    this.thematicAreaId,
     this.messageUser,
   });
 
@@ -31,6 +34,9 @@ class AssignedMentee {
   final int pendingLogbooks;
   final bool needsReview;
   final bool isOnline;
+  final int? facilityId;
+  final int? cycleId;
+  final int? thematicAreaId;
   final MessageUser? messageUser;
 }
 
@@ -91,6 +97,10 @@ final assignedMenteesProvider =
     final facility =
         (facilityMap?['name'] ?? a['facility_name'] ?? '').toString();
 
+    final facilityIdNum = (facilityMap?['id'] ?? a['facility_id'] ?? a['facilityId']) as num?;
+    final cycleIdNum = (a['cycle_id'] ?? a['cycleId']) as num?;
+    final thematicAreaIdNum = (a['thematic_area_id'] ?? a['thematicAreaId']) as num?;
+
     result.add(
       AssignedMentee(
         id: menteeId,
@@ -99,10 +109,13 @@ final assignedMenteesProvider =
         email: (contact?.email ?? menteeMap['email'] ?? '').toString(),
         facility: facility,
         level: '',
-        competencyPercentage: 0, // no data yet: comes from the progress API
+        competencyPercentage: 0,
         pendingLogbooks: 0,
         needsReview: false,
-        isOnline: false, // the server does not report presence
+        isOnline: false,
+        facilityId: facilityIdNum?.toInt(),
+        cycleId: cycleIdNum?.toInt(),
+        thematicAreaId: thematicAreaIdNum?.toInt(),
         messageUser: contact ??
             MessageUser(id: menteeId, fullName: name, role: 'mentee'),
       ),

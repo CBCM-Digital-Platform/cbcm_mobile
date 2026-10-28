@@ -1,225 +1,415 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/colors.dart';
-import '../../core/widgets/app_button.dart';
-import '../../core/widgets/app_button_row.dart';
+import '../../core/widgets/app_card.dart';
+import '../auth/domain/user_role.dart';
+import '../auth/presentation/current_role_provider.dart';
 import '../messaging/data/messaging_providers.dart';
 import 'assessments_repository.dart';
+import 'presentation/assessment_detail_page.dart';
+import 'presentation/conduct_assessment_page.dart';
 
 String _date(DateTime d) => '${d.day}/${d.month}/${d.year}';
 
-class AssessmentsPage extends ConsumerWidget {
-  const AssessmentsPage({super.key, this.menteeId, this.menteeName});
+class AssessmentsPage extends ConsumerStatefulWidget {
+  const AssessmentsPage({
+    super.key,
+    this.menteeId,
+    this.menteeName,
+    this.facilityId,
+    this.cycleId,
+    this.thematicAreaId,
+  });
 
   /// Set by a mentor; null when a mentee views her own.
   final int? menteeId;
   final String? menteeName;
+  final int? facilityId;
+  final int? cycleId;
+  final int? thematicAreaId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final a = ref.watch(currentUserIdProvider);
-    final myId = a.isLoading ? null : a.value;
-    final id = menteeId ?? myId;
-    final isMentor = menteeId != null;
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        title: Text(isMentor ? 'Assessments: $menteeName' : 'My Assessments',
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-      ),
-      floatingActionButton: isMentor
-          ? FloatingActionButton.extended(
-              heroTag: 'new_assessment',
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('New assessment'),
-              onPressed: () => Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => AssessmentFormPage(
-                      menteeId: menteeId!, menteeName: menteeName ?? 'Mentee'),
-                ),
-              ),
-            )
-          : null,
-      body: id == null
-          ? const Center(child: CircularProgressIndicator())
-          : ref.watch(assessmentsProvider(id)).when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) =>
-                    const Center(child: Text('Could not load assessments.')),
-                data: (list) => list.isEmpty
-                    ? const Center(child: Text('No assessments yet.'))
-                    : ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
-                        children: [for (final a in list) _Tile(a: a)],
-                      ),
-              ),
-    );
-  }
+  ConsumerState<AssessmentsPage> createState() => _AssessmentsPageState();
 }
 
-class _Tile extends StatelessWidget {
-  const _Tile({required this.a});
-  final Assessment a;
+class _AssessmentsPageState extends ConsumerState<AssessmentsPage> {
+  String _selectedFilter = 'all';
+
+
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ExpansionTile(
-        title: Text(a.area, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text('${_date(a.createdAt)} • demo data'),
-        trailing: Text('${a.score.round()}%',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final e in a.criteria.entries)
-            Row(children: [
-              Expanded(child: Text(e.key)),
-              Text('${e.value}%'),
-            ]),
-          const SizedBox(height: 8),
-          for (final e in a.checklist.entries)
-            Row(children: [
-              Icon(e.value ? Icons.check_box : Icons.check_box_outline_blank,
-                  size: 18, color: AppColors.primary),
-              const SizedBox(width: 6),
-              Expanded(child: Text(e.key)),
-            ]),
-          if (a.feedback.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text('Feedback: ${a.feedback}'),
-          ],
-        ],
+    final theme = Theme.of(context);
+    final userRole = ref.watch(currentRoleProvider);
+    final isMentor = widget.menteeId != null || userRole == UserRole.mentor;
+
+    final myIdAsync = ref.watch(currentUserIdProvider);
+    final myId = myIdAsync.isLoading ? null : myIdAsync.value;
+    final targetId = widget.menteeId ?? myId;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          isMentor
+              ? 'Assessments: ' + (widget.menteeName ?? 'Mentee')
+              : 'My Competency Assessments',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
+      floatingActionButton: isMentor && widget.menteeId != null
+          ? FloatingActionButton.extended(
+              heroTag: 'conduct_assessment_fab',
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_task),
+              label: const Text('Conduct Evaluation'),
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => ConductAssessmentPage(
+                      menteeId: widget.menteeId!,
+                      menteeName: widget.menteeName ?? 'Mentee',
+                      facilityId: widget.facilityId,
+                      cycleId: widget.cycleId,
+                      thematicAreaId: widget.thematicAreaId,
+                    ),
+                  ),
+                );
+              },
+            )
+          : null,
+      body: targetId == null
+          ? const Center(child: CircularProgressIndicator())
+          : ref.watch(assessmentsProvider(targetId)).when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: AppColors.destructive),
+                        const SizedBox(height: 12),
+                        const Text('Could not load assessments.'),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => ref.invalidate(assessmentsProvider(targetId)),
+                          child: const Text('Try again'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                data: (allList) {
+                  final filtered = allList.where((a) {
+                    if (_selectedFilter == 'finalized') return a.isFinalized;
+                    if (_selectedFilter == 'draft') return !a.isFinalized;
+                    return true;
+                  }).toList();
+
+                  final finalizedCount = allList.where((a) => a.isFinalized).length;
+                  final avgScore = allList.isEmpty
+                      ? 0.0
+                      : allList.fold<double>(0.0, (s, a) => s + a.displayScore) / allList.length;
+
+                  return RefreshIndicator(
+                    onRefresh: () async => ref.invalidate(assessmentsProvider(targetId)),
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+                      children: [
+                        AppCard(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _statItem(
+                                context,
+                                label: 'Total',
+                                value: allList.length.toString(),
+                                color: AppColors.primary,
+                              ),
+                              Container(height: 32, width: 1, color: theme.dividerColor),
+                              _statItem(
+                                context,
+                                label: 'Finalized',
+                                value: finalizedCount.toString(),
+                                color: Colors.green.shade600,
+                              ),
+                              Container(height: 32, width: 1, color: theme.dividerColor),
+                              _statItem(
+                                context,
+                                label: 'Avg Score',
+                                value: avgScore.round().toString() + '%',
+                                color: Colors.blue.shade700,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            _filterChip('all', 'All (' + allList.length.toString() + ')'),
+                            const SizedBox(width: 8),
+                            _filterChip('finalized', 'Finalized (' + finalizedCount.toString() + ')'),
+                            const SizedBox(width: 8),
+                            _filterChip('draft', 'In Review (' + (allList.length - finalizedCount).toString() + ')'),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        if (filtered.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.assignment_turned_in_outlined,
+                                  size: 56,
+                                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _selectedFilter == 'all'
+                                      ? 'No competency evaluations yet.'
+                                      : 'No ' + _selectedFilter + ' assessments found.',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  isMentor
+                                      ? 'Tap "Conduct Evaluation" below to evaluate and sign off clinical competencies.'
+                                      : 'Formal clinical competency sign-offs from your mentor will appear here.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          for (final item in filtered)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _AssessmentCard(
+                                assessment: item,
+                                isMentor: isMentor,
+                                onRefresh: () => ref.invalidate(assessmentsProvider(targetId)),
+                              ),
+                            ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+    );
+  }
+
+  Widget _filterChip(String key, String label) {
+    final selected = _selectedFilter == key;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      labelStyle: TextStyle(
+        fontSize: 12,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+        color: selected ? AppColors.primary : null,
+      ),
+      onSelected: (_) => setState(() => _selectedFilter = key),
+    );
+  }
+
+  Widget _statItem(BuildContext context, {required String label, required String value, required Color color}) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }
 
-class AssessmentFormPage extends ConsumerStatefulWidget {
-  const AssessmentFormPage({
-    super.key,
-    required this.menteeId,
-    required this.menteeName,
+class _AssessmentCard extends StatelessWidget {
+  const _AssessmentCard({
+    required this.assessment,
+    required this.isMentor,
+    required this.onRefresh,
   });
-  final int menteeId;
-  final String menteeName;
 
-  @override
-  ConsumerState<AssessmentFormPage> createState() => _FormState();
-}
+  final Assessment assessment;
+  final bool isMentor;
+  final VoidCallback onRefresh;
 
-class _FormState extends ConsumerState<AssessmentFormPage> {
-  String _area = kAssessmentAreas.first;
-  final _scores = {for (final c in kAssessmentCriteria) c: 70};
-  final _checks = {for (final c in kAssessmentChecklist) c: false};
-  final _feedback = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _feedback.dispose();
-    super.dispose();
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'finalized':
+      case 'reviewed':
+        return Colors.green.shade600;
+      case 'in_review':
+        return Colors.orange.shade700;
+      default:
+        return Colors.grey.shade600;
+    }
   }
 
-  Future<void> _finalize() async {
-    setState(() => _saving = true);
-    try {
-      final mentorId = await ref.read(currentUserIdProvider.future);
-      await ref.read(assessmentRepositoryProvider).finalize(
-            menteeId: widget.menteeId,
-            menteeName: widget.menteeName,
-            mentorId: mentorId ?? 0,
-            area: _area,
-            criteria: Map.of(_scores),
-            checklist: Map.of(_checks),
-            feedback: _feedback.text.trim(),
-          );
-      ref.invalidate(assessmentsProvider(widget.menteeId));
-      if (mounted) Navigator.of(context).pop();
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not save. Please try again.')),
-      );
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'finalized':
+        return 'Finalized Sign-off';
+      case 'reviewed':
+        return 'Reviewed';
+      case 'in_review':
+        return 'In Review';
+      default:
+        return 'Draft';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        title: const Text('New assessment'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          DropdownButtonFormField<String>(
-            initialValue: _area,
-            isExpanded: true,
-            dropdownColor: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.darkElevatedSurface
-                : Colors.white,
-            decoration: const InputDecoration(labelText: 'Thematic area'),
-            items: [
-              for (final a in kAssessmentAreas)
-                DropdownMenuItem(value: a, child: Text(a)),
-            ],
-            onChanged: (v) => setState(() => _area = v ?? _area),
+    final a = assessment;
+    final theme = Theme.of(context);
+    final statusCol = _statusColor(a.status);
+
+    return InkWell(
+      onTap: () {
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => AssessmentDetailPage(assessment: a),
           ),
-          const SizedBox(height: 16),
-          const Text('Criteria', style: TextStyle(fontWeight: FontWeight.bold)),
-          for (final c in kAssessmentCriteria) ...[
-            Row(children: [
-              Expanded(child: Text(c)),
-              Text('${_scores[c]}%'),
-            ]),
-            Slider(
-              value: _scores[c]!.toDouble(),
-              min: 0,
-              max: 100,
-              divisions: 20,
-              activeColor: AppColors.primary,
-              onChanged: (v) => setState(() => _scores[c] = v.round()),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: AppCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    a.area,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusCol.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: statusCol.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    _statusLabel(a.status),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: statusCol,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  _date(a.createdAt),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('•', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                const SizedBox(width: 8),
+                Text(
+                  a.criteriaScores.length.toString() + ' criteria evaluated',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  a.displayScore.round().toString() + '%',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    color: a.isFinalized ? Colors.green.shade700 : AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            if (a.feedback.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                '"' + a.feedback + '"',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      a.prerequisitesMet ? Icons.check_circle_outline : Icons.pending_outlined,
+                      size: 14,
+                      color: a.prerequisitesMet ? Colors.green.shade600 : Colors.orange,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      a.prerequisitesMet ? 'Prerequisites met' : 'Prerequisites pending',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const Row(
+                  children: [
+                    Text(
+                      'View details',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, size: 16, color: AppColors.primary),
+                  ],
+                ),
+              ],
             ),
           ],
-          const SizedBox(height: 8),
-          const Text('Checklist', style: TextStyle(fontWeight: FontWeight.bold)),
-          for (final c in kAssessmentChecklist)
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              activeColor: AppColors.primary,
-              title: Text(c),
-              value: _checks[c],
-              onChanged: (v) => setState(() => _checks[c] = v ?? false),
-            ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _feedback,
-            maxLines: 3,
-            decoration: const InputDecoration(hintText: 'Feedback for the mentee'),
-          ),
-          const SizedBox(height: 20),
-          AppButtonRow(
-            secondary: AppButton(
-              label: 'Cancel',
-              variant: AppButtonVariant.danger,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            primary: AppButton(
-              label: _saving ? 'Saving...' : 'Finalize',
-              onPressed: _saving ? null : _finalize,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

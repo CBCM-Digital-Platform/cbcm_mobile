@@ -1,3 +1,4 @@
+import '../../../certificates/presentation/certificate_eligibility_sheet.dart';
 import '../../../logbook/presentation/record_logbook_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -689,6 +690,25 @@ class _MenteeCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: AppButton(
+                      label: 'Certificate',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => CertificateEligibilitySheet(
+                            menteeId: mentee.id,
+                            menteeName: mentee.fullName,
+                            cycleId: mentee.cycleId ?? 1,
+                            thematicAreaId: mentee.thematicAreaId ?? 1,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppButton(
                       label: 'Assessments',
                       variant: AppButtonVariant.secondary,
                       onPressed: () {
@@ -697,6 +717,9 @@ class _MenteeCard extends ConsumerWidget {
                             builder: (_) => AssessmentsPage(
                               menteeId: mentee.id,
                               menteeName: mentee.fullName,
+                              facilityId: mentee.facilityId,
+                              cycleId: mentee.cycleId,
+                              thematicAreaId: mentee.thematicAreaId,
                             ),
                           ),
                         );

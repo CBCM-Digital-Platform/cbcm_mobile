@@ -90,6 +90,64 @@ class _LearnBody extends StatelessWidget {
         const SizedBox(height: 24),
         const _SectionTitle('My Competencies'),
         const MyProgressSection(),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => context.push(AppRoutes.menteeAssessments),
+          child: AppCard(
+            child: Row(
+              children: [
+                Icon(Icons.assignment_turned_in_outlined, color: AppColors.primary),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Formal competency assessments & sign-offs',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => context.push(AppRoutes.menteeCertificates),
+          child: AppCard(
+            child: Row(
+              children: [
+                const Icon(Icons.workspace_premium_outlined, color: Color(0xFFB8860B)),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Clinical certificates & credentials',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const _SectionTitle('Clinical Logbook'),
+        GestureDetector(
+          onTap: () => context.push(AppRoutes.menteeLogbook),
+          child: AppCard(
+            child: Row(
+              children: [
+                Icon(Icons.menu_book_outlined, color: AppColors.primary),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Clinical logbook: procedures and sessions recorded by your mentor',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 24),
         const _SectionTitle('Resources'),
         GestureDetector(

@@ -63,6 +63,27 @@ class LogbookRepository {
     }
   }
 
+  /// Fetches thematic areas assigned to a specific mentorship cycle.
+  Future<List<Map<String, dynamic>>> getThematicAreasForCycle(int cycleId) async {
+    try {
+      final res = await _dio.get('/mentorship-cycles/$cycleId/thematic-areas');
+      final list = _extractList(res.data);
+      if (list.isNotEmpty) {
+        return list.whereType<Map>().map((m) {
+          final id = (m['thematic_area_id'] ?? m['thematicAreaId'] ?? m['id']) as num?;
+          final name = (m['name'] ?? m['title'] ?? m['thematic_area_name'] ?? 'Thematic Area').toString();
+          return {
+            'id': id?.toInt() ?? 1,
+            'name': name,
+          };
+        }).toList();
+      }
+    } catch (e) {
+      debugPrint('[LogbookRepository] getThematicAreasForCycle failed: $e');
+    }
+    return getThematicAreas();
+  }
+
   /// Fetches available thematic areas from the backend with safe fallback.
   Future<List<Map<String, dynamic>>> getThematicAreas() async {
     try {
@@ -100,10 +121,14 @@ class LogbookRepository {
           if (id != null) return id;
         }
       }
+      if (list.isNotEmpty && list.first is Map) {
+        final id = (list.first['id'] as num?)?.toInt();
+        if (id != null) return id;
+      }
     } catch (e) {
       debugPrint('[LogbookRepository] getActiveCycleId fallback: $e');
     }
-    return 1;
+    return 7; // Fallback to live active cycle on server
   }
 
   List<dynamic> _extractList(dynamic raw) {

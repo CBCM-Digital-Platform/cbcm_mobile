@@ -1,3 +1,6 @@
+import 'package:go_router/go_router.dart';
+import '../../../routing/app_routes.dart';
+import '../../auth/presentation/logout_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_response.dart';
@@ -20,7 +23,56 @@ class ProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(userProfileProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('My Profile')),
+      appBar: AppBar(
+        title: const Text('My Profile'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'Options',
+            onSelected: (val) {
+              if (val == 'settings') {
+                context.push(AppRoutes.settings);
+              } else if (val == 'help') {
+                context.push(AppRoutes.help);
+              } else if (val == 'logout') {
+                confirmAndLogout(context, ref);
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Settings'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'help',
+                child: Row(
+                  children: [
+                    Icon(Icons.help_outline, size: 20),
+                    SizedBox(width: 12),
+                    Text('Help & support'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20, color: AppColors.destructive),
+                    SizedBox(width: 12),
+                    Text('Log out', style: TextStyle(color: AppColors.destructive)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
