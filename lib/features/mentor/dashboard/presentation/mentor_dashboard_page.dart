@@ -1,4 +1,3 @@
-import '../../../logbook/presentation/record_logbook_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/secure_storage_provider.dart';
@@ -12,6 +11,7 @@ import '../domain/mentor_summary.dart';
 import '../../../auth/presentation/profile_menu_button.dart';
 import '../../../notifications/presentation/notification_bell.dart';
 import '../../sessions/presentation/meeting_launcher.dart';
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../../routing/app_routes.dart';
 import 'package:go_router/go_router.dart';
 
@@ -42,14 +42,27 @@ class MentorDashboardPage extends ConsumerWidget {
     final summary = ref.watch(_summaryProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: Text('MidwifeMentor',
-            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+        leading: Builder(
+          builder: (c) => IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: 'Open navigation',
+            onPressed: () => Scaffold.of(c).openDrawer(),
+          ),
+        ),
+        title: Text(
+          'MidwifeMentor',
+          style: TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: AppColors.primary,
-        actions: [
-          const NotificationBell(),
-          const ProfileMenuButton(),
+        actions: const [
+          NotificationBell(),
+          ProfileMenuButton(),
         ],
       ),
       body: summary.when(
@@ -103,10 +116,11 @@ class MentorDashboardPage extends ConsumerWidget {
               const SizedBox(height: 12),
               StatCard(
                 label: 'Pending Logbooks',
-                value: '',
+                value: '${data.logbooksPending}',
                 icon: Icons.menu_book_outlined,
-                iconColor: const Color(0xFFD97706),
-                accentColor: const Color(0xFFD97706),
+                iconColor: AppColors.warning,
+                accentColor: AppColors.warning,
+                onTap: () => context.push(AppRoutes.mentorLogbookReview),
               ),
             ],
 
@@ -114,9 +128,9 @@ class MentorDashboardPage extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: AppButton(
-                label: 'Record Clinical Logbook',
-                icon: const Icon(Icons.edit_note),
-                onPressed: () => showRecordLogbookSheet(context),
+                label: 'Review Mentee Logbooks',
+                icon: const Icon(Icons.fact_check_outlined),
+                onPressed: () => context.push(AppRoutes.mentorLogbookReview),
               ),
             ),
             const SizedBox(height: 24),

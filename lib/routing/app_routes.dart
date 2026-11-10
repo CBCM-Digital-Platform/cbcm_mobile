@@ -23,6 +23,7 @@ class AppRoutes {
   static const menteeResources = '/mentee/resources';
   static const menteeQuiz = '/mentee/quiz';
   static const menteeLogbook = '/mentee/logbook';
+  static const menteeLogbookDetail = '/mentee/logbook-detail';
   static const menteeAssessments = '/mentee/assessments';
   static const menteeCertificates = '/mentee/certificates';
 
@@ -32,4 +33,6 @@ class AppRoutes {
   static const mentorSessions = '/mentor/sessions';
   static const mentorMessages = '/mentor/messages';
   static const mentorAskAi = '/mentor/ask-ai';
+  static const mentorLogbookReview = '/mentor/logbook-review';
+  static const mentorLogbookDetail = '/mentor/logbook-detail';
 }

@@ -1,6 +1,5 @@
 import 'package:go_router/go_router.dart';
 import '../../../routing/app_routes.dart';
-import '../../auth/presentation/logout_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_response.dart';
@@ -34,8 +33,6 @@ class ProfilePage extends ConsumerWidget {
                 context.push(AppRoutes.settings);
               } else if (val == 'help') {
                 context.push(AppRoutes.help);
-              } else if (val == 'logout') {
-                confirmAndLogout(context, ref);
               }
             },
             itemBuilder: (_) => [
@@ -56,16 +53,6 @@ class ProfilePage extends ConsumerWidget {
                     Icon(Icons.help_outline, size: 20),
                     SizedBox(width: 12),
                     Text('Help & support'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, size: 20, color: AppColors.destructive),
-                    SizedBox(width: 12),
-                    Text('Log out', style: TextStyle(color: AppColors.destructive)),
                   ],
                 ),
               ),

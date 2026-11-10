@@ -23,3 +23,24 @@ final mentorMenteeLogbookEntriesProvider =
   final repo = ref.watch(logbookRepositoryProvider);
   return repo.getEntries(menteeId: menteeId);
 });
+
+/// Pending logbook submissions awaiting mentor review.
+final pendingMentorLogbookEntriesProvider =
+    FutureProvider.autoDispose<List<LogbookEntry>>((ref) async {
+  final repo = ref.watch(logbookRepositoryProvider);
+  return repo.getEntries(status: 'submitted');
+});
+
+/// All logbook entries accessible to the mentor across their mentees.
+final mentorAllLogbookEntriesProvider =
+    FutureProvider.autoDispose<List<LogbookEntry>>((ref) async {
+  final repo = ref.watch(logbookRepositoryProvider);
+  return repo.getEntries();
+});
+
+/// Single logbook entry by ID.
+final logbookDetailProvider =
+    FutureProvider.autoDispose.family<LogbookEntry, int>((ref, id) async {
+  final repo = ref.watch(logbookRepositoryProvider);
+  return repo.getEntry(id);
+});

@@ -5,7 +5,10 @@ import '../../../../core/storage/secure_storage_provider.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/stat_card.dart';
 import '../../../../routing/app_routes.dart';
+import '../../../logbook/data/logbook_providers.dart';
 import '../../learning/domain/curriculum.dart';
 import '../../learning/presentation/curriculum_controller.dart';
 import '../../../auth/presentation/profile_menu_button.dart';
@@ -35,48 +38,89 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
   Widget build(BuildContext context) {
     final name = ref.watch(_userNameProvider);
     final curriculum = ref.watch(curriculumControllerProvider);
+    final logbookAsync = ref.watch(menteeLogbookEntriesProvider);
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final needsRevisionCount = (logbookAsync.value ?? [])
+        .where((e) => e.isNeedsRevision)
+        .length;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go(AppRoutes.home);
-            }
-          },
+        leading: Builder(
+          builder: (c) => IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: 'Open navigation',
+            onPressed: () => Scaffold.of(c).openDrawer(),
+          ),
         ),
-        actions: [
-          NotificationBell(color: theme.colorScheme.onSurface),
-
-          // Icon 2: Profile menu
-          const ProfileMenuButton(),
+        title: name.when(
+          data: (n) => Text(
+            'Mentee: $n',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          loading: () => Text(
+            'Mentee',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          error: (_, __) => Text(
+            'Mentee',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: AppColors.primary,
+        elevation: 0,
+        actions: const [
+          NotificationBell(),
+          ProfileMenuButton(),
         ],
       ),
       body: curriculum.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => const Center(child: Text('Could not load your progress')),
-        data: (data) => ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          children: [
-            // 1. WELCOME HERO CARD
-            _WelcomeHeroCard(
-              name: name.value ?? 'there',
-              curriculum: data,
-              onViewAllPressed: () => setState(() => _expandAll = !_expandAll),
-            ),
-            const SizedBox(height: 20),
+        data: (data) => RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(curriculumControllerProvider);
+            ref.invalidate(menteeLogbookEntriesProvider);
+          },
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              // 1. WELCOME HERO CARD
+              _WelcomeHeroCard(
+                name: name.value ?? 'there',
+                curriculum: data,
+                onViewAllPressed: () => setState(() => _expandAll = !_expandAll),
+              ),
 
-            // 2. CURRICULUM KEY METRICS
+              if (needsRevisionCount > 0) ...[
+                const SizedBox(height: 12),
+                StatCard(
+                  label: 'Logbooks Needing Revision',
+                  value: '$needsRevisionCount',
+                  icon: Icons.menu_book_outlined,
+                  iconColor: AppColors.warning,
+                  accentColor: AppColors.warning,
+                  onTap: () => context.push(AppRoutes.menteeLogbook),
+                ),
+              ],
+              const SizedBox(height: 20),
+
+              // 2. CURRICULUM KEY METRICS
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -190,8 +234,9 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // -------------------------------------------------------------

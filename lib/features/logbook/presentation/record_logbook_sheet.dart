@@ -1,17 +1,17 @@
-import '../../../core/network/api_response.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_response.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../mentor/mentees/data/assigned_mentees_provider.dart';
+import '../../messaging/data/messaging_providers.dart';
 import '../data/logbook_providers.dart';
 import '../domain/logbook_entry.dart';
 
-/// Shows the modal bottom sheet for a mentor to record a clinical logbook entry.
+/// Shows the modal bottom sheet for a mentee to record or edit a clinical logbook entry.
 Future<void> showRecordLogbookSheet(
   BuildContext context, {
-  int? initialMenteeId,
-  String? menteeName,
+  LogbookEntry? existingEntry,
+  int? menteeId,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -21,8 +21,8 @@ Future<void> showRecordLogbookSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (context) => RecordLogbookSheet(
-      initialMenteeId: initialMenteeId,
-      initialMenteeName: menteeName,
+      existingEntry: existingEntry,
+      menteeId: menteeId,
     ),
   );
 }
@@ -30,12 +30,12 @@ Future<void> showRecordLogbookSheet(
 class RecordLogbookSheet extends ConsumerStatefulWidget {
   const RecordLogbookSheet({
     super.key,
-    this.initialMenteeId,
-    this.initialMenteeName,
+    this.existingEntry,
+    this.menteeId,
   });
 
-  final int? initialMenteeId;
-  final String? initialMenteeName;
+  final LogbookEntry? existingEntry;
+  final int? menteeId;
 
   @override
   ConsumerState<RecordLogbookSheet> createState() => _RecordLogbookSheetState();
@@ -45,11 +45,10 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
   final _formKey = GlobalKey<FormState>();
   final _procedureController = TextEditingController();
   final _patientIdController = TextEditingController();
-  final _feedbackController = TextEditingController();
+  final _hoursController = TextEditingController(text: '1.0');
   final _notesController = TextEditingController();
 
-  int? _selectedMenteeId;
-  int _selectedThematicAreaId = 1;
+  int? _selectedThematicAreaId;
   String _selectedRole = 'performed';
   String _selectedSupervision = 'direct';
   String _selectedOutcome = 'successful';
@@ -67,62 +66,79 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
     'Manual Removal of Placenta',
     'Newborn Thermal Care & KMC Initiation',
     'Vacuum-assisted Vaginal Delivery',
+    'Kangaroo Mother Care (KMC)',
+    'Essential Newborn Care',
+    'Management of Eclampsia',
   ];
 
   @override
   void initState() {
     super.initState();
-    _selectedMenteeId = widget.initialMenteeId;
-    _loadMetadata();
+    final e = widget.existingEntry;
+    if (e != null) {
+      _procedureController.text = e.procedureName;
+      _patientIdController.text = e.patientIdentifier ?? '';
+      _hoursController.text = (e.hours ?? 1.0).toString();
+      _notesController.text = e.notes ?? '';
+      _selectedThematicAreaId = e.thematicAreaId;
+      _selectedRole = e.role;
+      _selectedSupervision = e.supervisionLevel;
+      _selectedOutcome = e.outcome;
+      if (e.datePerformed != null) _datePerformed = e.datePerformed!;
+    }
+    _loadThematicAreas();
   }
 
   @override
   void dispose() {
     _procedureController.dispose();
     _patientIdController.dispose();
-    _feedbackController.dispose();
+    _hoursController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  AssignedMentee? _getMentee(int? id) {
-    if (id == null) return null;
-    final list = ref.read(assignedMenteesProvider).value ?? [];
-    for (final m in list) {
-      if (m.id == id) return m;
-    }
-    return null;
-  }
-
-  Future<void> _loadMetadata({int? menteeId}) async {
+  Future<void> _loadThematicAreas() async {
     final repo = ref.read(logbookRepositoryProvider);
-    final mentee = _getMentee(menteeId ?? _selectedMenteeId);
-    final cycleId = mentee?.cycleId ?? await repo.getActiveCycleId();
-
-    final areas = await repo.getThematicAreasForCycle(cycleId);
+    final cycleId = widget.existingEntry?.cycleId ?? await repo.getActiveCycleId();
+    List<Map<String, dynamic>> areas = [];
+    if (cycleId != null) {
+      areas = await repo.getThematicAreasForCycle(cycleId);
+    }
+    if (areas.isEmpty) {
+      areas = await repo.getThematicAreas();
+    }
     if (!mounted) return;
 
     setState(() {
       _thematicAreas = areas;
-      if (areas.isNotEmpty) {
-        // If the mentee is already assigned to a specific thematic area in that cycle, use it
-        final menteeArea = mentee?.thematicAreaId;
-        final hasMenteeArea = areas.any((a) => a['id'] == menteeArea);
-        _selectedThematicAreaId = (hasMenteeArea ? menteeArea : areas.first['id']) as int;
+      if (_selectedThematicAreaId == null && areas.isNotEmpty) {
+        _selectedThematicAreaId = areas.first['id'] as int?;
       }
     });
   }
 
-  void _onMenteeChanged(int? newId) {
-    setState(() => _selectedMenteeId = newId);
-    _loadMetadata(menteeId: newId);
-  }
-
-  Future<void> _submit() async {
+  Future<void> _submit({required bool submitImmediately}) async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedMenteeId == null) {
+
+    final resolvedMenteeId = widget.menteeId ??
+        widget.existingEntry?.menteeId ??
+        ref.read(currentUserIdProvider).value;
+
+    if (resolvedMenteeId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a mentee.')),
+        const SnackBar(content: Text('Could not determine mentee ID. Please sign in again.')),
+      );
+      return;
+    }
+
+    if (_selectedThematicAreaId == null && _thematicAreas.isNotEmpty) {
+      _selectedThematicAreaId = _thematicAreas.first['id'] as int?;
+    }
+
+    if (_selectedThematicAreaId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a thematic area.')),
       );
       return;
     }
@@ -131,40 +147,63 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
 
     try {
       final repo = ref.read(logbookRepositoryProvider);
-      final mentee = _getMentee(_selectedMenteeId);
-      final cycleId = mentee?.cycleId ?? await repo.getActiveCycleId();
+      final hours = double.tryParse(_hoursController.text.trim()) ?? 1.0;
 
-      final req = CreateLogbookRequest(
-        menteeId: _selectedMenteeId!,
-        cycleId: cycleId,
-        thematicAreaId: _selectedThematicAreaId,
-        procedureName: _procedureController.text.trim(),
-        patientIdentifier: _patientIdController.text.trim().isEmpty
-            ? null
-            : _patientIdController.text.trim(),
-        datePerformed: _datePerformed,
-        role: _selectedRole,
-        supervisionLevel: _selectedSupervision,
-        outcome: _selectedOutcome,
-        notes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
-        mentorFeedback: _feedbackController.text.trim().isEmpty
-            ? null
-            : _feedbackController.text.trim(),
-      );
-
-      await repo.createEntry(req);
+      if (widget.existingEntry != null) {
+        final delta = widget.existingEntry!.buildPatchDelta(
+          newProcedureName: _procedureController.text.trim(),
+          newThematicAreaId: _selectedThematicAreaId,
+          newHours: hours,
+          newOutcome: _selectedOutcome,
+          newRole: _selectedRole,
+          newSupervisionLevel: _selectedSupervision,
+          newPatientIdentifier: _patientIdController.text.trim(),
+          newDatePerformed: _datePerformed,
+          newNotes: _notesController.text.trim(),
+        );
+        if (delta.isNotEmpty) {
+          await repo.patchEntry(widget.existingEntry!.id, delta);
+        }
+        if (submitImmediately) {
+          await repo.submitEntry(widget.existingEntry!.id);
+        }
+      } else {
+        final cycleId = await repo.getActiveCycleId();
+        final req = CreateLogbookRequest(
+          menteeId: resolvedMenteeId,
+          cycleId: cycleId,
+          thematicAreaId: _selectedThematicAreaId!,
+          procedureName: _procedureController.text.trim(),
+          patientIdentifier: _patientIdController.text.trim().isEmpty
+              ? null
+              : _patientIdController.text.trim(),
+          datePerformed: _datePerformed,
+          role: _selectedRole,
+          supervisionLevel: _selectedSupervision,
+          outcome: _selectedOutcome,
+          hours: hours,
+          notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          submitImmediately: submitImmediately,
+        );
+        await repo.createEntry(req);
+      }
 
       ref.invalidate(menteeLogbookEntriesProvider);
-      ref.invalidate(mentorMenteeLogbookEntriesProvider(_selectedMenteeId!));
+      if (widget.menteeId != null) {
+        ref.invalidate(mentorMenteeLogbookEntriesProvider(widget.menteeId!));
+      }
+      ref.invalidate(pendingMentorLogbookEntriesProvider);
 
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Color(0xFF16A34A),
-            content: Text('Clinical logbook entry recorded successfully!'),
+          SnackBar(
+            backgroundColor: const Color(0xFF16A34A),
+            content: Text(
+              submitImmediately
+                  ? 'Procedure submitted to mentor for review!'
+                  : 'Logbook entry saved as draft.',
+            ),
           ),
         );
       }
@@ -183,7 +222,8 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final menteesAsync = ref.watch(assignedMenteesProvider);
+    final isEdit = widget.existingEntry != null;
+    final isRevision = widget.existingEntry?.isNeedsRevision ?? false;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -203,24 +243,28 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Record Clinical Logbook',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isEdit ? 'Edit Clinical Logbook' : 'Record Clinical Procedure',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Record a supervised procedure for your mentee',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                        const SizedBox(height: 2),
+                        Text(
+                          isEdit
+                              ? 'Update procedure details and resubmit for mentor sign-off'
+                              : 'Log a patient procedure or clinical case for mentor review',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -230,227 +274,397 @@ class _RecordLogbookSheetState extends ConsumerState<RecordLogbookSheet> {
               ),
               const Divider(height: 24),
 
-              // 1. Mentee Selector
-              Text('Mentee', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              menteesAsync.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('Error loading mentees: $e'),
-                data: (mentees) {
-                  if (mentees.isEmpty) {
-                    return const Text('No assigned mentees found.');
-                  }
-                  if (_selectedMenteeId == null && mentees.isNotEmpty) {
-                    _selectedMenteeId = mentees.first.id;
-                  }
-                  return DropdownButtonFormField<int>(
-                    initialValue: _selectedMenteeId,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                    items: [
-                      for (final m in mentees)
-                        DropdownMenuItem<int>(
-                          value: m.id,
-                          child: Text(m.fullName),
+              // Revision banner if needed
+              if (isRevision && widget.existingEntry?.revisionReason != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.feedback_outlined, color: AppColors.warning, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Mentor Feedback / Revision Request:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.warning,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.existingEntry!.revisionReason!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
                     ],
-                    onChanged: _onMenteeChanged,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // 1. Procedure Name
+              Text(
+                'Clinical Procedure / Case *',
+                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _procedureController,
+                decoration: InputDecoration(
+                  hintText: 'e.g. Neonatal Resuscitation, AMTSL...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  prefixIcon: const Icon(Icons.medical_services_outlined, size: 20),
+                ),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Procedure name is required' : null,
+              ),
+              const SizedBox(height: 8),
+
+              // Suggestions
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _commonProcedures.map((proc) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ActionChip(
+                        label: Text(proc, style: const TextStyle(fontSize: 11)),
+                        backgroundColor: isDark ? AppColors.darkCardSurface : Colors.grey.shade100,
+                        onPressed: () {
+                          setState(() {
+                            _procedureController.text = proc;
+                          });
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 2. Thematic Area
+              Text(
+                'Thematic Area *',
+                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              if (_thematicAreas.isEmpty)
+                Text(
+                  'Loading thematic areas...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                  ),
+                )
+              else
+                DropdownButtonFormField<int>(
+                  isExpanded: true,
+                  initialValue: _selectedThematicAreaId ?? (_thematicAreas.isNotEmpty ? _thematicAreas.first['id'] as int : null),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  items: _thematicAreas.map((a) {
+                    return DropdownMenuItem<int>(
+                      value: a['id'] as int,
+                      child: Text(
+                        a['name']?.toString() ?? 'Thematic Area',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) => setState(() => _selectedThematicAreaId = val),
+                  validator: (val) => val == null ? 'Select a thematic area' : null,
+                ),
+              const SizedBox(height: 16),
+
+              // 3. Date Performed & Hours Spent
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 360;
+                  final dateField = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Date Performed',
+                        style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _datePerformed,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setState(() => _datePerformed = picked);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            prefixIcon: const Icon(Icons.calendar_today, size: 18),
+                          ),
+                          child: Text(
+                            '${_datePerformed.year}-${_datePerformed.month.toString().padLeft(2, '0')}-${_datePerformed.day.toString().padLeft(2, '0')}',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+
+                  final hoursField = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hours Spent',
+                        style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _hoursController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          prefixIcon: const Icon(Icons.timer_outlined, size: 18),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Required';
+                          final parsed = double.tryParse(v.trim());
+                          if (parsed == null || parsed <= 0) return 'Valid hours';
+                          return null;
+                        },
+                      ),
+                    ],
+                  );
+
+                  if (isNarrow) {
+                    return Column(
+                      children: [
+                        dateField,
+                        const SizedBox(height: 12),
+                        hoursField,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: dateField),
+                      const SizedBox(width: 12),
+                      Expanded(child: hoursField),
+                    ],
                   );
                 },
               ),
               const SizedBox(height: 16),
 
-              // 2. Procedure / Clinical Event
-              Text('Clinical Procedure / Event', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _procedureController,
-                decoration: InputDecoration(
-                  hintText: 'e.g. Active Management of Third Stage of Labor',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-                validator: (val) =>
-                    (val == null || val.trim().isEmpty) ? 'Please enter the procedure name' : null,
+              // 4. Clinical Role
+              Text(
+                'My Role in Procedure',
+                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 8),
-
-              // Quick suggestion chips
+              const SizedBox(height: 6),
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  for (final p in _commonProcedures.take(4))
-                    ActionChip(
-                      label: Text(p, style: const TextStyle(fontSize: 11)),
-                      onPressed: () => setState(() => _procedureController.text = p),
-                    ),
+                  _roleChip('performed', 'Performed', Icons.check_circle_outline),
+                  _roleChip('assisted', 'Assisted', Icons.people_outline),
+                  _roleChip('observed', 'Observed', Icons.visibility_outlined),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // 3. Thematic Area
-              if (_thematicAreas.isNotEmpty) ...[
-                Text('Thematic Area', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<int>(
-                  initialValue: _selectedThematicAreaId,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
-                  items: [
-                    for (final a in _thematicAreas)
-                      DropdownMenuItem<int>(
-                        value: a['id'] as int,
-                        child: Text(a['name'].toString()),
-                      ),
-                  ],
-                  onChanged: (val) => setState(() => _selectedThematicAreaId = val ?? 1),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // 4. Role & Supervision Row
-              Row(
+              // 5. Supervision Level
+              Text(
+                'Supervision Level',
+                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Mentee Role', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedRole,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'performed', child: Text('Performed')),
-                            DropdownMenuItem(value: 'assisted', child: Text('Assisted')),
-                            DropdownMenuItem(value: 'observed', child: Text('Observed')),
-                          ],
-                          onChanged: (v) => setState(() => _selectedRole = v ?? 'performed'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Supervision', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedSupervision,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'direct', child: Text('Direct (Bedside)')),
-                            DropdownMenuItem(value: 'indirect', child: Text('Indirect')),
-                            DropdownMenuItem(value: 'independent', child: Text('Independent')),
-                          ],
-                          onChanged: (v) => setState(() => _selectedSupervision = v ?? 'direct'),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _supervisionChip('direct', 'Direct'),
+                  _supervisionChip('indirect', 'Indirect'),
+                  _supervisionChip('independent', 'Independent'),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // 5. Outcome & Date Row
-              Row(
+              // 6. Outcome
+              Text(
+                'Clinical Outcome',
+                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Outcome', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedOutcome,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'successful', child: Text('Successful')),
-                            DropdownMenuItem(value: 'partially_successful', child: Text('Partially')),
-                            DropdownMenuItem(value: 'complicated', child: Text('Complicated')),
-                          ],
-                          onChanged: (v) => setState(() => _selectedOutcome = v ?? 'successful'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Date Performed', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          icon: const Icon(Icons.calendar_today, size: 16),
-                          label: Text(
-                            '${_datePerformed.year}-${_datePerformed.month.toString().padLeft(2, '0')}-${_datePerformed.day.toString().padLeft(2, '0')}',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: _datePerformed,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) setState(() => _datePerformed = picked);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                  _outcomeChip('successful', 'Successful', const Color(0xFF16A34A)),
+                  _outcomeChip('partially_successful', 'Partially Successful', AppColors.warning),
+                  _outcomeChip('unsuccessful', 'Unsuccessful', Colors.red.shade700),
+                  _outcomeChip('complicated', 'Complicated', Colors.purple.shade700),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // 6. Mentor Clinical Feedback
-              Text('Mentor Clinical Feedback', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
+              // 7. Patient Identifier
+              Text(
+                'Patient Identifier (Optional / Anonymized)',
+                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 6),
               TextFormField(
-                controller: _feedbackController,
-                maxLines: 2,
+                controller: _patientIdController,
                 decoration: InputDecoration(
-                  hintText: 'e.g. Good adherence to aseptic technique. Timely administration.',
+                  hintText: 'e.g. PT-309, Bed 4...',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  prefixIcon: const Icon(Icons.person_pin_outlined, size: 20),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: _submitting ? 'Recording Logbook...' : 'Record & Approve Entry',
-                  onPressed: _submitting ? null : _submit,
+              // 8. Clinical Notes & Case Reflections
+              Text(
+                'Clinical Notes & Case Reflections',
+                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _notesController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Describe patient presentation, steps performed, findings, challenges faced, or key lessons learned...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.all(14),
                 ),
               ),
+              const SizedBox(height: 24),
+
+              // Actions
+              if (_submitting)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else
+                Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: AppButton(
+                        label: isEdit ? 'Submit Revisions to Mentor' : 'Submit to Mentor for Sign-off',
+                        icon: const Icon(Icons.send_outlined),
+                        onPressed: () => _submit(submitImmediately: true),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: AppButton(
+                        label: 'Save Draft',
+                        variant: AppButtonVariant.secondary,
+                        icon: const Icon(Icons.save_outlined),
+                        onPressed: () => _submit(submitImmediately: false),
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 24),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _roleChip(String val, String label, IconData icon) {
+    final selected = _selectedRole == val;
+    return ChoiceChip(
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: selected ? Colors.white : AppColors.primary,
+      ),
+      label: Text(label),
+      selected: selected,
+      selectedColor: AppColors.primary,
+      labelStyle: TextStyle(
+        color: selected
+            ? Colors.white
+            : (Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : Colors.black87),
+        fontWeight: FontWeight.w600,
+        fontSize: 12,
+      ),
+      onSelected: (_) => setState(() => _selectedRole = val),
+    );
+  }
+
+  Widget _supervisionChip(String val, String label) {
+    final selected = _selectedSupervision == val;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      selectedColor: AppColors.primary,
+      labelStyle: TextStyle(
+        color: selected
+            ? Colors.white
+            : (Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : Colors.black87),
+        fontWeight: FontWeight.w600,
+        fontSize: 12,
+      ),
+      onSelected: (_) => setState(() => _selectedSupervision = val),
+    );
+  }
+
+  Widget _outcomeChip(String val, String label, Color color) {
+    final selected = _selectedOutcome == val;
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: selected ? Colors.white : color,
+        ),
+      ),
+      selected: selected,
+      selectedColor: color,
+      backgroundColor: color.withValues(alpha: 0.1),
+      checkmarkColor: Colors.white,
+      onSelected: (_) => setState(() => _selectedOutcome = val),
     );
   }
 }

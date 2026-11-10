@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/colors.dart';
 import '../../../routing/app_routes.dart';
 
+export 'app_overflow_menu_button.dart';
+
 /// The profile avatar in the top bar.
 /// Tapping it opens the Profile editing page.
 class ProfileMenuButton extends ConsumerWidget {

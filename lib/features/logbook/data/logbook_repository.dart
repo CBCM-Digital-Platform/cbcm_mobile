@@ -32,33 +32,119 @@ class LogbookRepository {
     }
   }
 
-  /// Creates a new logbook entry recorded by a mentor.
+  /// Retrieves a specific logbook entry by ID with related data.
+  Future<LogbookEntry> getEntry(int id) async {
+    try {
+      final res = await _dio.get('/logbook/$id');
+      final raw = res.data;
+      final data = raw is Map && raw['data'] is Map
+          ? raw['data'] as Map
+          : (raw is Map ? raw : null);
+      if (data == null) throw StateError('Logbook entry not found.');
+      return LogbookEntry.fromJson(Map<String, dynamic>.from(data));
+    } on DioException catch (e) {
+      debugPrint('[LogbookRepository] getEntry failed: ${e.message}');
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  /// Creates a new logbook entry recorded by a mentee.
   Future<LogbookEntry> createEntry(CreateLogbookRequest request) async {
     try {
       final res = await _dio.post('/logbook', data: request.toJson());
       final raw = res.data;
-      final data = raw is Map && raw['data'] is Map ? raw['data'] as Map : (raw is Map ? raw : null);
+      final data = raw is Map && raw['data'] is Map
+          ? raw['data'] as Map
+          : (raw is Map ? raw : null);
       if (data == null) throw StateError('Failed to record logbook entry.');
 
       final entry = LogbookEntry.fromJson(Map<String, dynamic>.from(data));
 
-      // As the mentor is recording the observed/conducted event directly,
-      // transition entry to submitted and approved if possible
-      try {
-        await _dio.post('/logbook/${entry.id}/submit');
-        if (request.mentorFeedback != null && request.mentorFeedback!.isNotEmpty) {
-          await _dio.post(
-            '/logbook/${entry.id}/approve',
-            data: {'mentor_feedback': request.mentorFeedback},
-          );
+      if (request.submitImmediately && entry.id > 0) {
+        try {
+          await submitEntry(entry.id);
+        } catch (e) {
+          debugPrint('[LogbookRepository] Immediate submit failed: $e');
         }
-      } catch (e) {
-        debugPrint('[LogbookRepository] Note: transition failed (continuing): $e');
       }
 
       return entry;
     } on DioException catch (e) {
       debugPrint('[LogbookRepository] createEntry failed: ${e.message}');
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  /// Submits a draft logbook entry for mentor review.
+  Future<void> submitEntry(int id) async {
+    try {
+      await _dio.post('/logbook/$id/submit');
+    } on DioException catch (e) {
+      debugPrint('[LogbookRepository] submitEntry failed: ${e.message}');
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  /// Updates only changed fields on a draft or revision_requested logbook entry.
+  Future<LogbookEntry> patchEntry(int id, Map<String, dynamic> delta) async {
+    try {
+      final res = await _dio.patch('/logbook/$id', data: delta);
+      final raw = res.data;
+      final data = raw is Map && raw['data'] is Map
+          ? raw['data'] as Map
+          : (raw is Map ? raw : null);
+      if (data == null) throw StateError('Failed to update logbook entry.');
+
+      return LogbookEntry.fromJson(Map<String, dynamic>.from(data));
+    } on DioException catch (e) {
+      debugPrint('[LogbookRepository] patchEntry failed: ${e.message}');
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  /// Approves a submitted logbook entry (mentor only).
+  Future<void> approveEntry(int id, {String? mentorFeedback}) async {
+    try {
+      final data = <String, dynamic>{};
+      if (mentorFeedback != null && mentorFeedback.isNotEmpty) {
+        data['mentor_feedback'] = mentorFeedback;
+      }
+      await _dio.post('/logbook/$id/approve', data: data.isEmpty ? null : data);
+    } on DioException catch (e) {
+      debugPrint('[LogbookRepository] approveEntry failed: ${e.message}');
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  /// Requests revision for a submitted logbook entry with a comment (mentor only).
+  Future<void> requestRevision(int id, {String? comment, String? revisionReason}) async {
+    final text = comment ?? revisionReason ?? '';
+    try {
+      await _dio.post(
+        '/logbook/$id/request-revision',
+        data: {
+          'revision_reason': text,
+          'mentor_feedback': text,
+        },
+      );
+    } on DioException catch (e) {
+      debugPrint('[LogbookRepository] requestRevision failed: ${e.message}');
+      throw apiExceptionFromDio(e);
+    }
+  }
+
+  /// Gets logbook progress summary (status counts and approved hours) for a mentee.
+  Future<Map<String, dynamic>> getProgress(int menteeId) async {
+    try {
+      final res = await _dio.get('/logbook/progress/$menteeId');
+      final data = res.data;
+      if (data is Map && data['data'] is Map) {
+        return Map<String, dynamic>.from(data['data'] as Map);
+      }
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return {};
+    } on DioException catch (e) {
+      debugPrint('[LogbookRepository] getProgress failed: ${e.message}');
       throw apiExceptionFromDio(e);
     }
   }
@@ -84,7 +170,7 @@ class LogbookRepository {
     return getThematicAreas();
   }
 
-  /// Fetches available thematic areas from the backend with safe fallback.
+  /// Fetches available thematic areas from the backend with no seed fallback.
   Future<List<Map<String, dynamic>>> getThematicAreas() async {
     try {
       final res = await _dio.get('/thematic-areas');
@@ -99,19 +185,14 @@ class LogbookRepository {
             .toList();
       }
     } catch (e) {
-      debugPrint('[LogbookRepository] getThematicAreas fallback: $e');
+      debugPrint('[LogbookRepository] getThematicAreas failed: $e');
     }
 
-    return const [
-      {'id': 1, 'name': 'Maternal Health & Intrapartum Care'},
-      {'id': 2, 'name': 'Newborn Care & Resuscitation'},
-      {'id': 3, 'name': 'Emergency Obstetric Care (EmONC)'},
-      {'id': 4, 'name': 'Postpartum & Family Planning'},
-    ];
+    return const [];
   }
 
   /// Gets the currently active mentorship cycle ID.
-  Future<int> getActiveCycleId() async {
+  Future<int?> getActiveCycleId() async {
     try {
       final res = await _dio.get('/mentorship-cycles');
       final list = _extractList(res.data);
@@ -126,9 +207,9 @@ class LogbookRepository {
         if (id != null) return id;
       }
     } catch (e) {
-      debugPrint('[LogbookRepository] getActiveCycleId fallback: $e');
+      debugPrint('[LogbookRepository] getActiveCycleId error: $e');
     }
-    return 7; // Fallback to live active cycle on server
+    return null;
   }
 
   List<dynamic> _extractList(dynamic raw) {

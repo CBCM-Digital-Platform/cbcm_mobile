@@ -139,7 +139,7 @@ class _LearnBody extends StatelessWidget {
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
-                    'Clinical logbook: procedures and sessions recorded by your mentor',
+                    'Record procedures and patient encounters for mentor sign-off',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),

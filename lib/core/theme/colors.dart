@@ -21,6 +21,9 @@ class AppColors {
   /// Destructive/negative action color (Delete, Cancel, Logout)
   static const Color destructive = Color(0xFFD32F2F);
 
+  /// Warning / attention required color (Drafts, Revisions, In-Review)
+  static const Color warning = Color(0xFFD97706);
+
   // ---------------------------------------------------------
   // Light Theme Palette
   // ---------------------------------------------------------
@@ -49,6 +52,9 @@ class AppColors {
 
   /// Surface color for cards, sheets, and dialogs (Dark)
   static const Color darkSurface = Color(0xFF1E221E);
+
+  /// Card surface alias for dark mode
+  static const Color darkCardSurface = Color(0xFF1E221E);
 
   /// Elevated surface color for sheets, dialogs, and popups (Dark)
   static const Color darkElevatedSurface = Color(0xFF262C26);

@@ -4,6 +4,9 @@ import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_card.dart';
 import '../data/logbook_providers.dart';
 import '../domain/logbook_entry.dart';
+import 'record_logbook_sheet.dart';
+import 'edit_logbook_sheet.dart';
+import 'mentee_logbook_detail_page.dart';
 
 class MenteeLogbookPage extends ConsumerStatefulWidget {
   const MenteeLogbookPage({super.key});
@@ -28,6 +31,14 @@ class _MenteeLogbookPageState extends ConsumerState<MenteeLogbookPage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'record_logbook_fab',
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_task),
+        label: const Text('Record Procedure'),
+        onPressed: () => showRecordLogbookSheet(context),
+      ),
       body: entriesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
@@ -44,22 +55,24 @@ class _MenteeLogbookPageState extends ConsumerState<MenteeLogbookPage> {
           ),
         ),
         data: (entries) {
-          final performedCount =
-              entries.where((e) => e.role == 'performed').length;
-          final assistedCount =
-              entries.where((e) => e.role == 'assisted').length;
-          final observedCount =
-              entries.where((e) => e.role == 'observed').length;
+          final approvedCount = entries.where((e) => e.isApproved).length;
+          final submittedCount = entries.where((e) => e.isSubmitted).length;
+          final revisionCount = entries.where((e) => e.isNeedsRevision).length;
+          final draftCount = entries.where((e) => e.isDraft).length;
 
           final filtered = entries.where((e) {
             if (_selectedFilter == 'all') return true;
-            return e.role == _selectedFilter;
+            if (_selectedFilter == 'approved') return e.isApproved;
+            if (_selectedFilter == 'submitted') return e.isSubmitted;
+            if (_selectedFilter == 'needs_revision') return e.isNeedsRevision;
+            if (_selectedFilter == 'draft') return e.isDraft;
+            return true;
           }).toList();
 
           return RefreshIndicator(
             onRefresh: () async => ref.refresh(menteeLogbookEntriesProvider.future),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
               children: [
                 // 1. Summary Header Card
                 Container(
@@ -73,10 +86,10 @@ class _MenteeLogbookPageState extends ConsumerState<MenteeLogbookPage> {
                     children: [
                       Row(
                         children: const [
-                          Icon(Icons.verified_outlined, color: Color(0xFFFACC15), size: 18),
+                          Icon(Icons.menu_book, color: Color(0xFFFACC15), size: 18),
                           SizedBox(width: 8),
                           Text(
-                            'MENTOR-VERIFIED PROCEDURES',
+                            'CLINICAL EXPERIENCE LOGBOOK',
                             style: TextStyle(
                               color: Color(0xFFFACC15),
                               fontSize: 11,
@@ -96,18 +109,18 @@ class _MenteeLogbookPageState extends ConsumerState<MenteeLogbookPage> {
                             color: Colors.white,
                           ),
                           _StatColumn(
-                            count: '$performedCount',
-                            label: 'Performed',
+                            count: '$approvedCount',
+                            label: 'Approved',
                             color: const Color(0xFF4ADE80),
                           ),
                           _StatColumn(
-                            count: '$assistedCount',
-                            label: 'Assisted',
+                            count: '$submittedCount',
+                            label: 'Under Review',
                             color: const Color(0xFF60A5FA),
                           ),
                           _StatColumn(
-                            count: '$observedCount',
-                            label: 'Observed',
+                            count: '$revisionCount',
+                            label: 'Needs Rev.',
                             color: const Color(0xFFFACC15),
                           ),
                         ],
@@ -129,21 +142,28 @@ class _MenteeLogbookPageState extends ConsumerState<MenteeLogbookPage> {
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
-                        label: 'Performed ($performedCount)',
-                        selected: _selectedFilter == 'performed',
-                        onSelected: () => setState(() => _selectedFilter = 'performed'),
+                        label: 'Needs Revision ($revisionCount)',
+                        selected: _selectedFilter == 'needs_revision',
+                        color: AppColors.warning,
+                        onSelected: () => setState(() => _selectedFilter = 'needs_revision'),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
-                        label: 'Assisted ($assistedCount)',
-                        selected: _selectedFilter == 'assisted',
-                        onSelected: () => setState(() => _selectedFilter = 'assisted'),
+                        label: 'Under Review ($submittedCount)',
+                        selected: _selectedFilter == 'submitted',
+                        onSelected: () => setState(() => _selectedFilter = 'submitted'),
                       ),
                       const SizedBox(width: 8),
                       _FilterChip(
-                        label: 'Observed ($observedCount)',
-                        selected: _selectedFilter == 'observed',
-                        onSelected: () => setState(() => _selectedFilter = 'observed'),
+                        label: 'Approved ($approvedCount)',
+                        selected: _selectedFilter == 'approved',
+                        onSelected: () => setState(() => _selectedFilter = 'approved'),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterChip(
+                        label: 'Drafts ($draftCount)',
+                        selected: _selectedFilter == 'draft',
+                        onSelected: () => setState(() => _selectedFilter = 'draft'),
                       ),
                     ],
                   ),
@@ -164,17 +184,29 @@ class _MenteeLogbookPageState extends ConsumerState<MenteeLogbookPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No entries found',
+                          _selectedFilter == 'all'
+                              ? 'No clinical entries yet'
+                              : 'No $_selectedFilter entries found',
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'When your mentor logs procedures and clinical sessions with you, their verified entries will appear here.',
+                          'Record patient encounters and clinical procedures performed in facility. Your mentor will review and sign them off.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
                             color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: const Text('Record First Procedure'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => showRecordLogbookSheet(context),
                         ),
                       ],
                     ),
@@ -219,26 +251,29 @@ class _FilterChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onSelected,
+    this.color,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onSelected;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final activeColor = color ?? AppColors.primary;
 
     return ChoiceChip(
       label: Text(label, style: const TextStyle(fontSize: 12)),
       selected: selected,
       onSelected: (_) => onSelected(),
-      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      selectedColor: activeColor.withValues(alpha: 0.15),
       backgroundColor: isDark ? AppColors.darkSurface : Colors.grey.shade100,
       labelStyle: TextStyle(
         color: selected
-            ? AppColors.primary
+            ? activeColor
             : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700),
         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
       ),
@@ -246,12 +281,12 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _LogbookEntryCard extends StatelessWidget {
+class _LogbookEntryCard extends ConsumerWidget {
   const _LogbookEntryCard({required this.item});
   final LogbookEntry item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -261,39 +296,81 @@ class _LogbookEntryCard extends StatelessWidget {
             ? '${item.createdAt!.year}-${item.createdAt!.month.toString().padLeft(2, '0')}-${item.createdAt!.day.toString().padLeft(2, '0')}'
             : 'Recently');
 
+    final statusColor = item.statusColor(context);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: AppCard(
-        child: Column(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => MenteeLogbookDetailPage(entryId: item.id),
+            ),
+          );
+        },
+        child: AppCard(
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top row: date & approved badge
+            // Top row: date, hours & status badge
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  dateStr,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 13,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      dateStr,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                      ),
+                    ),
+                    if (item.hours != null) ...[
+                      const SizedBox(width: 8),
+                      Text('•', style: TextStyle(color: theme.dividerColor)),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${item.hours} hrs',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF16A34A).withValues(alpha: 0.12),
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Row(
-                    children: const [
-                      Icon(Icons.check_circle, size: 12, color: Color(0xFF16A34A)),
-                      SizedBox(width: 4),
+                    children: [
+                      Icon(
+                        item.isApproved
+                            ? Icons.check_circle
+                            : (item.isNeedsRevision
+                                ? Icons.warning_amber_rounded
+                                : (item.isSubmitted ? Icons.hourglass_top : Icons.edit_note)),
+                        size: 12,
+                        color: statusColor,
+                      ),
+                      const SizedBox(width: 4),
                       Text(
-                        'Verified',
+                        item.displayStatus,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF16A34A),
+                          color: statusColor,
                         ),
                       ),
                     ],
@@ -330,11 +407,130 @@ class _LogbookEntryCard extends StatelessWidget {
                   label: item.displayOutcome,
                   color: item.outcomeColor(context),
                 ),
+                if (item.patientIdentifier != null && item.patientIdentifier!.isNotEmpty)
+                  _Tag(
+                    label: item.patientIdentifier!,
+                    color: Colors.grey.shade700,
+                  ),
               ],
             ),
 
-            // Mentor Feedback box
-            if (item.mentorFeedback != null && item.mentorFeedback!.isNotEmpty) ...[
+            // Clinical Notes preview
+            if (item.notes != null && item.notes!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                item.notes!,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                ),
+              ),
+            ],
+
+            // Mentor Feedback / Revision Request Alert Banner
+            if (item.isNeedsRevision && item.revisionReason != null && item.revisionReason!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.feedback_outlined, color: AppColors.warning, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Revision Requested by Mentor:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.revisionReason!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Edit & Resubmit to Mentor'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.warning,
+                    side: const BorderSide(color: AppColors.warning),
+                  ),
+                  onPressed: () => showEditLogbookSheet(context, entry: item),
+                ),
+              ),
+            ],
+
+            // Draft actions
+            if (item.isDraft) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('Edit Draft'),
+                      onPressed: () => showRecordLogbookSheet(context, existingEntry: item),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.send, size: 16),
+                      label: const Text('Submit'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        try {
+                          await ref.read(logbookRepositoryProvider).submitEntry(item.id);
+                          ref.invalidate(menteeLogbookEntriesProvider);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Logbook submitted to mentor!')),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Submit failed: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            // Mentor Approval Feedback box
+            if (item.isApproved && item.mentorFeedback != null && item.mentorFeedback!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(10),
@@ -343,9 +539,9 @@ class _LogbookEntryCard extends StatelessWidget {
                       ? AppColors.darkElevatedSurface.withValues(alpha: 0.6)
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border(
+                  border: const Border(
                     left: BorderSide(
-                      color: AppColors.primary,
+                      color: Color(0xFF16A34A),
                       width: 3,
                     ),
                   ),
@@ -353,13 +549,13 @@ class _LogbookEntryCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.format_quote, size: 16, color: AppColors.primary),
+                    const Icon(Icons.verified, size: 16, color: Color(0xFF16A34A)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        item.mentorFeedback!,
+                        'Mentor Sign-off: "${item.mentorFeedback!}"',
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: 12,
                           fontStyle: FontStyle.italic,
                           color: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F2937),
                         ),
@@ -371,6 +567,7 @@ class _LogbookEntryCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
       ),
     );
   }

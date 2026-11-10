@@ -11,20 +11,18 @@ enum ReadAloudStatus { preparing, ready, playing, paused, finished, unavailable 
 /// out and back in.
 class ReadAloudController extends ChangeNotifier {
   ReadAloudController({
-    required Future<String> Function() loadText,
-    required SecureStorage storage,
-    required String resourceKey,
-  })  : _loadText = loadText,
-        _storage = storage,
-        _resourceKey = resourceKey {
+    required this.loadText,
+    required this.storage,
+    required this.resourceKey,
+  }) {
     _prepare();
   }
 
   static const _maxChunk = 350;
 
-  final Future<String> Function() _loadText;
-  final SecureStorage _storage;
-  final String _resourceKey;
+  final Future<String> Function() loadText;
+  final SecureStorage storage;
+  final String resourceKey;
   final FlutterTts _tts = FlutterTts();
 
   String? _positionKey;
@@ -50,7 +48,7 @@ class ReadAloudController extends ChangeNotifier {
 
   Future<void> _prepare() async {
     try {
-      _chunks = _split(await _loadText());
+      _chunks = _split(await loadText());
     } catch (e) {
       debugPrint('[READ-ALOUD] could not read text: $e');
       _chunks = const [];
@@ -64,9 +62,9 @@ class ReadAloudController extends ChangeNotifier {
     }
 
     try {
-      final userId = await _storage.read(StorageKeys.userId);
-      _positionKey = 'read_pos:${userId ?? 'anon'}:$_resourceKey';
-      final saved = int.tryParse(await _storage.read(_positionKey!) ?? '');
+      final userId = await storage.read(StorageKeys.userId);
+      _positionKey = 'read_pos:${userId ?? 'anon'}:$resourceKey';
+      final saved = int.tryParse(await storage.read(_positionKey!) ?? '');
       if (saved != null && saved > 0 && saved < _chunks.length) {
         _index = saved;
         resumed = true;
@@ -83,7 +81,7 @@ class ReadAloudController extends ChangeNotifier {
     final key = _positionKey;
     if (key == null) return;
     try {
-      await _storage.write(key, _index.toString());
+      await storage.write(key, _index.toString());
     } catch (_) {}
   }
 

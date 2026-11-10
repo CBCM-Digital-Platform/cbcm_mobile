@@ -1,5 +1,6 @@
 import '../../../certificates/presentation/certificate_eligibility_sheet.dart';
-import '../../../logbook/presentation/record_logbook_sheet.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../routing/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/colors.dart';
@@ -457,14 +458,16 @@ class _MenteeCard extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: AppButton(
-                  label: 'Record Logbook Entry',
+                  label: 'View Clinical Logbook',
                   variant: AppButtonVariant.secondary,
-                  icon: const Icon(Icons.edit_note),
+                  icon: const Icon(Icons.menu_book_outlined),
                   onPressed: () {
-                    showRecordLogbookSheet(
-                      context,
-                      initialMenteeId: mentee.id,
-                      menteeName: mentee.fullName,
+                    context.push(
+                      AppRoutes.mentorLogbookReview,
+                      extra: {
+                        'menteeId': mentee.id,
+                        'menteeName': mentee.fullName,
+                      },
                     );
                   },
                 ),

@@ -21,6 +21,9 @@ import '../features/mentee/mentorship/presentation/my_mentor_page.dart';
 import '../features/mentee/presentation/mentee_shell.dart';
 import '../features/mentee/quizzes/presentation/quiz_page.dart';
 import '../features/logbook/presentation/mentee_logbook_page.dart';
+import '../features/logbook/presentation/mentee_logbook_detail_page.dart';
+import '../features/logbook/presentation/mentor_logbook_review_page.dart';
+import '../features/logbook/presentation/mentor_logbook_detail_page.dart';
 import '../features/mentee/resources/presentation/resources_page.dart';
 import '../features/mentor/dashboard/presentation/mentor_dashboard_page.dart';
 import '../features/mentor/mentees/presentation/mentees_page.dart';
@@ -139,12 +142,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const MenteeLogbookPage(),
       ),
       GoRoute(
+        path: AppRoutes.menteeLogbookDetail,
+        builder: (context, state) =>
+            MenteeLogbookDetailPage(entryId: state.extra as int),
+      ),
+      GoRoute(
         path: AppRoutes.menteeAssessments,
         builder: (context, state) => const AssessmentsPage(),
       ),
       GoRoute(
         path: AppRoutes.menteeCertificates,
         builder: (context, state) => const CertificatesPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.mentorLogbookReview,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return MentorLogbookReviewPage(
+            menteeId: extra?['menteeId'] as int?,
+            menteeName: extra?['menteeName'] as String?,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.mentorLogbookDetail,
+        builder: (context, state) =>
+            MentorLogbookDetailPage(entryId: state.extra as int),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

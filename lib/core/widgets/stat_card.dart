@@ -12,6 +12,7 @@ class StatCard extends StatelessWidget {
     this.accentColor,
     this.actionLabel,
     this.onAction,
+    this.onTap,
   });
 
   final String label;
@@ -21,6 +22,7 @@ class StatCard extends StatelessWidget {
   final Color? accentColor; // left border strip
   final String? actionLabel;
   final VoidCallback? onAction;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -52,14 +54,25 @@ class StatCard extends StatelessWidget {
       ),
     );
 
-    if (accentColor == null) return card;
+    Widget result = card;
+    if (accentColor != null) {
+      result = Container(
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: accentColor!, width: 4)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: card,
+      );
+    }
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(left: BorderSide(color: accentColor!, width: 4)),
+    if (onTap != null) {
+      return InkWell(
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: card,
-    );
+        onTap: onTap,
+        child: result,
+      );
+    }
+
+    return result;
   }
 }

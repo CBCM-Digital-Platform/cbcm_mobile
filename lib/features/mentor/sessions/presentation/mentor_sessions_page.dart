@@ -5,6 +5,7 @@ import '../../../../core/storage/storage_keys.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_drawer.dart';
 import '../../../auth/presentation/profile_menu_button.dart';
 import '../../../notifications/presentation/notification_bell.dart';
 import '../data/sessions_repository_provider.dart';
@@ -47,7 +48,15 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: Builder(
+          builder: (c) => IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: 'Open navigation',
+            onPressed: () => Scaffold.of(c).openDrawer(),
+          ),
+        ),
         title: Text(
           'Clinical Sessions',
           style: TextStyle(

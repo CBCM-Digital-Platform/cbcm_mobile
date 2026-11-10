@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,7 @@ import '../../../core/constants/app_info.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_button_row.dart';
+import '../../../routing/app_router.dart';
 import '../../../routing/app_routes.dart';
 import '../data/auth_repository_provider.dart';
 import 'current_role_provider.dart';
@@ -18,18 +20,26 @@ Future<void> confirmAndLogout(BuildContext context, WidgetRef ref) async {
   );
   if (confirmed != true) return;
 
-  // Tell the backend first (it revokes the refresh token) while the token
-  // is still stored. Never block logging out if this fails, e.g. offline.
-  try {
-    await ref
+  // Close the drawer if it's currently open
+  final scaffoldState = Scaffold.maybeOf(context);
+  if (scaffoldState?.isDrawerOpen ?? false) {
+    Navigator.of(context).pop();
+  }
+
+  // Fire backend revocation in background so UI logout is instantaneous.
+  unawaited(
+    ref
         .read(authRepositoryProvider)
         .logout()
-        .timeout(const Duration(seconds: 3));
-  } catch (_) {}
+        .timeout(const Duration(seconds: 2))
+        .catchError((_) {}),
+  );
 
   // Clears the stored session and the role, which also re-checks the router.
   await ref.read(currentRoleProvider.notifier).logout();
-  if (context.mounted) context.go(AppRoutes.login);
+
+  // Explicitly navigate to login screen via the router provider
+  ref.read(appRouterProvider).go(AppRoutes.login);
 }
 
 class _LogoutDialog extends StatelessWidget {
