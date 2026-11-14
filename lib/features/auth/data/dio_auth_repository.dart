@@ -125,7 +125,9 @@ class DioAuthRepository implements AuthRepository {
         ApiEndpoints.changePassword,
         data: {
           'currentPassword': currentPassword,
+          'current_password': currentPassword,
           'newPassword': newPassword,
+          'new_password': newPassword,
         },
       );
     } on DioException catch (e) {

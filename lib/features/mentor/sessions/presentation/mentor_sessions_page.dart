@@ -393,6 +393,10 @@ class SessionCard extends ConsumerWidget {
                         ref: ref,
                         sessionId: session.id,
                         sessionTitle: partnerName,
+                        fallbackUrl: session.location != null &&
+                                session.location!.startsWith('http')
+                            ? session.location
+                            : null,
                       );
                     },
                   ),

@@ -50,18 +50,6 @@ class ScheduleSessionSheet extends ConsumerStatefulWidget {
 class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
   static const _durationMinutes = 45;
 
-  /// Shown only if the server's availability cannot be read.
-  static const _standardSlots = [
-    TimeSlot(hour: 9, minute: 0),
-    TimeSlot(hour: 9, minute: 30),
-    TimeSlot(hour: 10, minute: 0),
-    TimeSlot(hour: 11, minute: 30),
-    TimeSlot(hour: 13, minute: 30),
-    TimeSlot(hour: 14, minute: 0),
-    TimeSlot(hour: 14, minute: 30),
-    TimeSlot(hour: 16, minute: 0),
-  ];
-
   static const _topics = [
     '1:1 Mentoring',
     'Clinical Assessment',
@@ -79,18 +67,11 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
   final _notesController = TextEditingController();
   bool _isSubmitting = false;
 
-  AvailableTimes? _times;
-  bool _loadingTimes = false;
-  int _requestId = 0;
-  String? _loadedKey;
-
   @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
   }
-
-  String _dateKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
   int? _idOf(Map<String, dynamic> a) => (a['id'] as num?)?.toInt();
 
@@ -115,44 +96,6 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
       }
     }
     return ids.first;
-  }
-
-  Future<void> _loadTimes(int assignmentId) async {
-    final request = ++_requestId;
-    setState(() {
-      _loadingTimes = true;
-      _times = null;
-      _selectedSlot = null;
-    });
-
-    final result = await ref.read(sessionsRepositoryProvider).getAvailableTimes(
-          assignmentId: assignmentId,
-          date: _selectedDate,
-          durationMinutes: _durationMinutes,
-        );
-
-    if (!mounted || request != _requestId) return; // a newer request won
-    setState(() {
-      _times = result;
-      _loadingTimes = false;
-    });
-  }
-
-  List<TimeSlot> _visibleSlots() {
-    final times = _times;
-    if (times == null) return const [];
-    final base = times.checked ? times.slots : _standardSlots;
-
-    final now = DateTime.now();
-    final isToday = _selectedDate.year == now.year &&
-        _selectedDate.month == now.month &&
-        _selectedDate.day == now.day;
-    final nowMinutes = now.hour * 60 + now.minute;
-
-    return [
-      for (final s in base)
-        if (!isToday || s.minutesOfDay > nowMinutes) s,
-    ];
   }
 
   String _partnerLabel(Map<String, dynamic> a, UserRole? role) {
@@ -186,21 +129,8 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
         assignmentsAsync.value ?? const <Map<String, dynamic>>[];
     final effectiveId = _effectiveAssignmentId(assignments);
 
-    // Load the free times whenever the assignment or the date changes.
-    if (effectiveId != null) {
-      final key = '$effectiveId|${_dateKey(_selectedDate)}';
-      if (key != _loadedKey) {
-        _loadedKey = key;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _loadTimes(effectiveId);
-        });
-      }
-    }
-
-    final canSubmit = effectiveId != null &&
-        _selectedSlot != null &&
-        !_isSubmitting &&
-        _times?.error == null;
+    final canSubmit =
+        effectiveId != null && _selectedSlot != null && !_isSubmitting;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -301,9 +231,44 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _header(Icons.access_time_outlined, 'Available Times'),
+                _header(Icons.access_time_outlined, 'Select Time'),
                 const SizedBox(height: 8),
-                _buildTimes(effectiveId),
+                InkWell(
+                  onTap: _pickTime,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      color: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade50,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _selectedSlot != null
+                                ? _selectedSlot!.label
+                                : 'Choose session time (e.g. 02:45 PM)',
+                            style: TextStyle(
+                              fontWeight: _selectedSlot != null
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              fontSize: 15,
+                              color: _selectedSlot != null
+                                  ? (isDark ? AppColors.darkTextPrimary : null)
+                                  : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.schedule, color: AppColors.primary),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 _header(Icons.videocam_outlined, 'Session Type'),
                 const SizedBox(height: 8),
@@ -473,98 +438,6 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     );
   }
 
-  Widget _buildTimes(int? effectiveId) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (effectiveId == null) {
-      return Text(
-        'Free times appear once an assignment is available.',
-        style: TextStyle(
-          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-          fontSize: 13,
-        ),
-      );
-    }
-    if (_loadingTimes || _times == null) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: Center(
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.5),
-          ),
-        ),
-      );
-    }
-        final error = _times!.error;
-    if (error != null) {
-      return Text(error,
-          style: TextStyle(color: Colors.red.shade700, fontSize: 13));
-    }
-
-    final slots = _visibleSlots();
-    final checked = _times!.checked;
-
-    if (slots.isEmpty) {
-      return Text(
-        'No free times on this day. Pick another date.',
-        style: TextStyle(
-          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-          fontSize: 13,
-        ),
-      );
-    }
-
-    final morning = slots.where((s) => s.hour < 12).toList();
-    final afternoon = slots.where((s) => s.hour >= 12).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!checked)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Text(
-              'Could not check availability. Standard times are shown, and '
-              'the server will confirm your choice.',
-              style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
-            ),
-          ),
-        if (morning.isNotEmpty) ...[
-          _smallLabel('Morning'),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [for (final s in morning) _timeChip(s)],
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (afternoon.isNotEmpty) ...[
-          _smallLabel('Afternoon'),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [for (final s in afternoon) _timeChip(s)],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _smallLabel(String text) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-      ),
-    );
-  }
-
   Widget _header(IconData icon, String title) {
     return Row(
       children: [
@@ -577,44 +450,6 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _timeChip(TimeSlot slot) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final selected = _selectedSlot == slot;
-    return Material(
-      color: selected
-          ? AppColors.primary
-          : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: () => setState(() => _selectedSlot = slot),
-        borderRadius: BorderRadius.circular(8),
-        splashColor: AppColors.primary.withValues(alpha: 0.2),
-        highlightColor: AppColors.primary.withValues(alpha: 0.1),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: selected
-                  ? AppColors.primary
-                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-            ),
-          ),
-          child: Text(
-            slot.label,
-            style: TextStyle(
-              color: selected
-                  ? Colors.white
-                  : (isDark ? AppColors.darkTextPrimary : Colors.black87),
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -700,6 +535,48 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
+  Future<void> _pickTime() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final initial = _selectedSlot != null
+        ? TimeOfDay(hour: _selectedSlot!.hour, minute: _selectedSlot!.minute)
+        : TimeOfDay.now();
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (context, child) {
+        if (!isDark) return child!;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: AppColors.darkElevatedSurface,
+              onSurface: AppColors.darkTextPrimary,
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: AppColors.darkElevatedSurface,
+            ),
+            timePickerTheme: const TimePickerThemeData(
+              backgroundColor: AppColors.darkElevatedSurface,
+              dialBackgroundColor: AppColors.darkSurface,
+              dialTextColor: AppColors.darkTextPrimary,
+              entryModeIconColor: AppColors.primary,
+              hourMinuteTextColor: AppColors.darkTextPrimary,
+              dayPeriodTextColor: AppColors.darkTextPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedSlot = TimeSlot(hour: picked.hour, minute: picked.minute);
+      });
+    }
+  }
+
   String _formatDate(DateTime dt) {
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -758,8 +635,6 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.error.message), backgroundColor: Colors.red),
       );
-      // Often a scheduling conflict: refresh which times are still free.
-      _loadTimes(assignmentId);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -7,6 +7,8 @@ import '../../../core/storage/secure_storage_provider.dart';
 import '../../../core/storage/storage_keys.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../auth/presentation/change_password_sheet.dart';
+import '../../auth/presentation/logout_dialog.dart';
 import '../data/user_profile_repository.dart';
 
 String _msg(Object e) =>
@@ -31,8 +33,12 @@ class ProfilePage extends ConsumerWidget {
             onSelected: (val) {
               if (val == 'settings') {
                 context.push(AppRoutes.settings);
+              } else if (val == 'change_password') {
+                ChangePasswordSheet.show(context);
               } else if (val == 'help') {
                 context.push(AppRoutes.help);
+              } else if (val == 'logout') {
+                confirmAndLogout(context, ref);
               }
             },
             itemBuilder: (_) => [
@@ -47,12 +53,33 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
               const PopupMenuItem(
+                value: 'change_password',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, size: 20),
+                    SizedBox(width: 12),
+                    Text('Change password'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
                 value: 'help',
                 child: Row(
                   children: [
                     Icon(Icons.help_outline, size: 20),
                     SizedBox(width: 12),
                     Text('Help & support'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20, color: AppColors.destructive),
+                    SizedBox(width: 12),
+                    Text('Log out', style: TextStyle(color: AppColors.destructive)),
                   ],
                 ),
               ),
@@ -239,6 +266,27 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               onPressed: _saving ? null : _save,
             ),
           ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: AppButton(
+              label: 'Change Password',
+              variant: AppButtonVariant.secondary,
+              icon: const Icon(Icons.lock_outline, size: 18),
+              onPressed: () => ChangePasswordSheet.show(context),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: AppButton(
+              label: 'Log Out',
+              variant: AppButtonVariant.danger,
+              icon: const Icon(Icons.logout, size: 18),
+              onPressed: () => confirmAndLogout(context, ref),
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );

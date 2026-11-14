@@ -92,27 +92,93 @@ class JitsiJoinToken {
     required this.room,
     required this.token,
     this.expiresAt,
+    this.directUrl,
   });
 
   final String domain;
   final String room;
   final String token;
   final String? expiresAt;
+  final String? directUrl;
 
   String get meetingUrl {
-    final cleanDomain = domain.replaceAll(RegExp(r'^https?://'), '');
-    if (token.isNotEmpty) {
-      return 'https://$cleanDomain/$room?jwt=$token';
+    if (directUrl != null && directUrl!.isNotEmpty) {
+      return directUrl!;
     }
-    return 'https://$cleanDomain/$room';
+    final cleanDomain = (domain.isEmpty ? 'meet.jit.si' : domain)
+        .replaceAll(RegExp(r'^https?://'), '')
+        .replaceAll(RegExp(r'/+$'), '');
+    final cleanRoom = room.startsWith('/') ? room.substring(1) : room;
+    if (token.isNotEmpty) {
+      return 'https://$cleanDomain/$cleanRoom?jwt=$token';
+    }
+    return 'https://$cleanDomain/$cleanRoom';
   }
 
-  factory JitsiJoinToken.fromJson(Map<String, dynamic> json) {
+  factory JitsiJoinToken.fromJson(Map<String, dynamic> json, {int? sessionId}) {
+    // 1. Look for direct full URL
+    final direct = json['meeting_url'] ??
+        json['meetingUrl'] ??
+        json['url'] ??
+        json['join_url'] ??
+        json['jitsi_url'] ??
+        json['link'];
+
+    String domain = (json['domain'] ??
+            json['jitsi_domain'] ??
+            json['server'] ??
+            json['host'] ??
+            '')
+        .toString()
+        .trim();
+
+    String room = (json['room'] ??
+            json['room_name'] ??
+            json['roomName'] ??
+            json['channel'] ??
+            json['session_room'] ??
+            '')
+        .toString()
+        .trim();
+
+    String token = (json['token'] ??
+            json['jwt'] ??
+            json['jwt_token'] ??
+            json['access_token'] ??
+            '')
+        .toString()
+        .trim();
+
+    String? directUrl = direct?.toString().trim();
+    if (directUrl != null && directUrl.isNotEmpty) {
+      final uri = Uri.tryParse(directUrl);
+      if (uri != null) {
+        if (domain.isEmpty && uri.host.isNotEmpty) {
+          domain = uri.host;
+        }
+        if (room.isEmpty && uri.pathSegments.isNotEmpty) {
+          room = uri.pathSegments.first;
+        }
+        if (token.isEmpty && uri.queryParameters.containsKey('jwt')) {
+          token = uri.queryParameters['jwt']!;
+        }
+      }
+    }
+
+    if (domain.isEmpty) {
+      domain = 'meet.jit.si';
+    }
+
+    if (room.isEmpty && sessionId != null) {
+      room = 'cbcm-session-$sessionId';
+    }
+
     return JitsiJoinToken(
-      domain: (json['domain'] ?? '').toString(),
-      room: (json['room'] ?? '').toString(),
-      token: (json['token'] ?? '').toString(),
-      expiresAt: json['expires_at']?.toString(),
+      domain: domain,
+      room: room,
+      token: token,
+      expiresAt: (json['expires_at'] ?? json['expiresAt'])?.toString(),
+      directUrl: directUrl,
     );
   }
 }

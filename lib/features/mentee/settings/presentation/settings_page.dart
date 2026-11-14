@@ -4,6 +4,7 @@ import '../../../../core/constants/app_info.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/theme_mode_provider.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../auth/presentation/change_password_sheet.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -84,6 +85,65 @@ class SettingsPage extends ConsumerWidget {
                       .setThemeMode(ThemeMode.dark),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Section: Security
+          _buildSectionHeader(context, 'Security'),
+          const SizedBox(height: 8),
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            child: InkWell(
+              onTap: () => ChangePasswordSheet.show(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Change Password',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Update your account password for enhanced security',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 24),

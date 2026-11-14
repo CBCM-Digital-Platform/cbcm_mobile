@@ -1794,6 +1794,10 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
                           ref: ref,
                           sessionId: session.id,
                           sessionTitle: session.sessionGoals ?? 'Mentorship Session',
+                          fallbackUrl: session.location != null &&
+                                  session.location!.startsWith('http')
+                              ? session.location
+                              : null,
                         );
                       },
                       child: Row(

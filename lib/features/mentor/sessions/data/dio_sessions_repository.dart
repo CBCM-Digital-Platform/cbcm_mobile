@@ -86,13 +86,32 @@ class DioSessionsRepository implements SessionsRepository {
 
   @override
   Future<JitsiJoinToken> getJoinToken(int sessionId) async {
+    Response? response;
     try {
-      final response =
-          await _dio.post(ApiEndpoints.sessionJoinToken(sessionId));
-      return JitsiJoinToken.fromJson(_map(response.data));
+      response = await _dio.post(ApiEndpoints.sessionJoinToken(sessionId));
+      debugPrint('[JITSI] POST join-token response: ${response.statusCode} ${response.data}');
     } on DioException catch (e) {
-      throw apiExceptionFromDio(e);
+      debugPrint('[JITSI] POST join-token failed: ${e.response?.statusCode} ${e.response?.data}');
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
+        try {
+          response = await _dio.get(ApiEndpoints.sessionJoinToken(sessionId));
+          debugPrint('[JITSI] GET join-token response: ${response.statusCode} ${response.data}');
+        } on DioException catch (e2) {
+          debugPrint('[JITSI] GET join-token failed: ${e2.response?.statusCode} ${e2.response?.data}');
+          try {
+            response = await _dio.post(ApiEndpoints.sessionParticipantJoin(sessionId));
+            debugPrint('[JITSI] POST participant-join response: ${response.statusCode} ${response.data}');
+          } catch (_) {
+            throw apiExceptionFromDio(e);
+          }
+        }
+      } else {
+        throw apiExceptionFromDio(e);
+      }
     }
+
+    final map = _map(response.data);
+    return JitsiJoinToken.fromJson(map, sessionId: sessionId);
   }
 
   @override
