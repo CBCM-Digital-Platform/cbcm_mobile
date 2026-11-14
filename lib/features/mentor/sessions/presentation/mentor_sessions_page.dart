@@ -6,6 +6,7 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../auth/presentation/profile_menu_button.dart';
 import '../../../notifications/presentation/notification_bell.dart';
 import '../data/sessions_repository_provider.dart';
@@ -68,6 +69,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
         foregroundColor: AppColors.primary,
         elevation: 0,
         actions: const [
+          ThemeToggleButton(),
           NotificationBell(),
           ProfileMenuButton(),
         ],

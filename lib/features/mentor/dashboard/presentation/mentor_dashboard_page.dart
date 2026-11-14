@@ -12,6 +12,7 @@ import '../../../auth/presentation/profile_menu_button.dart';
 import '../../../notifications/presentation/notification_bell.dart';
 import '../../sessions/presentation/meeting_launcher.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../../routing/app_routes.dart';
 import 'package:go_router/go_router.dart';
 
@@ -61,6 +62,7 @@ class MentorDashboardPage extends ConsumerWidget {
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: AppColors.primary,
         actions: const [
+          ThemeToggleButton(),
           NotificationBell(),
           ProfileMenuButton(),
         ],

@@ -38,7 +38,7 @@ class LearningAccessPage extends StatelessWidget {
           title: Text(
             'Learning Access: $menteeName',
             style: TextStyle(
-              color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w500,
             ),
@@ -49,8 +49,8 @@ class LearningAccessPage extends StatelessWidget {
             indicatorWeight: 2.5,
             labelColor: AppColors.primary,
             unselectedLabelColor:
-                isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-            dividerColor: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            dividerColor: isDark ? AppColors.darkBorder : AppColors.border,
             tabs: const [
               Tab(
                 icon: Icon(Icons.menu_book),

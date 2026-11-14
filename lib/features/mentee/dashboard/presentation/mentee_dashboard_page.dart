@@ -7,6 +7,7 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_drawer.dart';
 import '../../../../core/widgets/stat_card.dart';
+import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../../routing/app_routes.dart';
 import '../../../logbook/data/logbook_providers.dart';
 import '../../learning/domain/curriculum.dart';
@@ -61,6 +62,8 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
         title: name.when(
           data: (n) => Text(
             'Mentee: $n',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: AppColors.primary,
               fontWeight: FontWeight.bold,
@@ -85,6 +88,7 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
         foregroundColor: AppColors.primary,
         elevation: 0,
         actions: const [
+          ThemeToggleButton(),
           NotificationBell(),
           ProfileMenuButton(),
         ],

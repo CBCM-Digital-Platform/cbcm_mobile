@@ -72,7 +72,7 @@ class AppDrawer extends ConsumerWidget {
                       children: [
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor: Colors.white,
+                          backgroundColor: theme.colorScheme.onPrimary,
                           child: Text(
                             initials.isEmpty ? '?' : initials,
                             style: const TextStyle(
@@ -89,16 +89,16 @@ class AppDrawer extends ConsumerWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: theme.colorScheme.onPrimary.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Text(
                             isMentor ? 'Mentor' : 'Mentee',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: theme.colorScheme.onPrimary,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -109,8 +109,8 @@ class AppDrawer extends ConsumerWidget {
                     const SizedBox(height: 14),
                     Text(
                       fullName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: theme.colorScheme.onPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -122,7 +122,7 @@ class AppDrawer extends ConsumerWidget {
                       Text(
                         email,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.85),
+                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.85),
                           fontSize: 13,
                         ),
                         maxLines: 1,
@@ -221,7 +221,7 @@ class AppDrawer extends ConsumerWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.8,
-                        color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -270,7 +270,7 @@ class AppDrawer extends ConsumerWidget {
                 '${AppInfo.appName} • Clinical Mentorship',
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? AppColors.darkTextSecondary : const Color(0xFF9E9E9E),
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
               ),
             ),

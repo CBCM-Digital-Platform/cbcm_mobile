@@ -45,7 +45,9 @@ class _State extends ConsumerState<AssignResourcesPage>
       await ref.read(resourceRepositoryProvider).assignToMentee(widget.menteeId, _selected);
     } catch (_) {}
     if (!mounted) return;
-    Navigator.of(context).pop();
+    if (!widget.embedded) {
+      Navigator.of(context).pop();
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Assigned ${_selected.length} resource(s) to ${widget.menteeName}.')),
     );
@@ -55,7 +57,8 @@ class _State extends ConsumerState<AssignResourcesPage>
   Widget build(BuildContext context) {
     super.build(context);
     final catalog = ref.watch(_catalogProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final body = catalog.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -67,31 +70,9 @@ class _State extends ConsumerState<AssignResourcesPage>
           ];
           return Column(
             children: [
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.pageIndicator.withValues(alpha: 0.15)
-                      : AppColors.pageIndicator.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.pageIndicator.withValues(alpha: isDark ? 0.35 : 0.6),
-                  ),
-                ),
-                child: Text(
-                  'Demo: approved resources are sample data and assignments '
-                  'are kept on this phone until the backend is ready.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                  ),
-                ),
-              ),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     for (final a in [null, ...areas]) () {
@@ -101,13 +82,11 @@ class _State extends ConsumerState<AssignResourcesPage>
                         child: Material(
                           color: isSelected
                               ? AppColors.primary
-                              : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100),
+                              : (isDark ? AppColors.darkElevatedSurface : theme.colorScheme.surface),
                           borderRadius: BorderRadius.circular(20),
                           child: InkWell(
                             onTap: () => setState(() => _area = a),
                             borderRadius: BorderRadius.circular(20),
-                            splashColor: AppColors.primary.withValues(alpha: 0.2),
-                            highlightColor: AppColors.primary.withValues(alpha: 0.1),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
@@ -115,7 +94,7 @@ class _State extends ConsumerState<AssignResourcesPage>
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.primary
-                                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                                      : (isDark ? AppColors.darkBorder : AppColors.border),
                                   width: 1.2,
                                 ),
                               ),
@@ -125,7 +104,7 @@ class _State extends ConsumerState<AssignResourcesPage>
                                   fontSize: 13,
                                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                   color: isSelected
-                                      ? Colors.white
+                                      ? theme.colorScheme.onPrimary
                                       : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                                 ),
                               ),
@@ -138,33 +117,49 @@ class _State extends ConsumerState<AssignResourcesPage>
                 ),
               ),
               Expanded(
-                child: ListView(
-                  children: [
-                    for (final r in shown)
-                      CheckboxListTile(
-                        activeColor: AppColors.primary,
-                        checkColor: Colors.white,
-                        value: _selected.contains(r.id),
-                        title: Text(
-                          r.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                child: shown.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No learning resources found.',
                           style: TextStyle(
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                            fontSize: 14,
                           ),
                         ),
-                        subtitle: Text(
-                          '${r.category} • ${r.type.name}',
-                          style: TextStyle(
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                        ),
-                        onChanged: (v) => setState(() =>
-                            v == true ? _selected.add(r.id) : _selected.remove(r.id)),
+                      )
+                    : ListView(
+                        children: [
+                          for (final r in shown)
+                            CheckboxListTile(
+                              activeColor: AppColors.primary,
+                              checkColor: theme.colorScheme.onPrimary,
+                              value: _selected.contains(r.id),
+                              title: Text(
+                                r.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${r.category} • ${r.type.name}',
+                                style: TextStyle(
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                              onChanged: (v) => setState(() =>
+                                  v == true ? _selected.add(r.id) : _selected.remove(r.id)),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
               ),
               SafeArea(
                 top: false,

@@ -135,7 +135,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.menteeQuiz,
-        builder: (context, state) => const QuizPage(),
+        builder: (context, state) {
+          final extra = state.extra;
+          int? quizId;
+          int? moduleId;
+
+          if (extra is int) {
+            quizId = extra;
+          } else if (extra is String) {
+            quizId = int.tryParse(extra);
+          } else if (extra is Map) {
+            quizId = extra['quizId'] is int
+                ? extra['quizId'] as int
+                : int.tryParse(extra['quizId']?.toString() ?? extra['id']?.toString() ?? '');
+            moduleId = extra['moduleId'] is int
+                ? extra['moduleId'] as int
+                : int.tryParse(extra['moduleId']?.toString() ?? '');
+          }
+
+          quizId ??= int.tryParse(state.uri.queryParameters['quizId'] ?? '');
+          moduleId ??= int.tryParse(state.uri.queryParameters['moduleId'] ?? '');
+
+          return QuizPage(
+            quizId: quizId,
+            moduleId: moduleId,
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.menteeLogbook,

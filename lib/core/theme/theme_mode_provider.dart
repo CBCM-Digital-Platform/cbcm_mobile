@@ -43,6 +43,13 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
       // Non-blocking write error
     }
   }
+
+  Future<void> toggleTheme(Brightness currentBrightness) async {
+    final next = currentBrightness == Brightness.dark
+        ? ThemeMode.light
+        : ThemeMode.dark;
+    await setThemeMode(next);
+  }
 }
 
 final themeModeProvider =

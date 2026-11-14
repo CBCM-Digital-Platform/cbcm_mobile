@@ -60,26 +60,47 @@ class _LearnBody extends StatelessWidget {
         _ContinueCard(data: data),
         const SizedBox(height: 24),
         const _SectionTitle('My Progress'),
-        for (var i = 0; i < data.chapters.length; i++)
+        if (data.chapters.isEmpty)
           Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _ChapterCard(
-              chapter: data.chapters[i],
-              locked: i > activeIndex,
-              startExpanded: i == activeIndex,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'No learning modules assigned to your profile yet.',
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+                fontSize: 13,
+              ),
             ),
-          ),
+          )
+        else
+          for (var i = 0; i < data.chapters.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _ChapterCard(
+                chapter: data.chapters[i],
+                locked: i > activeIndex,
+                startExpanded: i == activeIndex,
+              ),
+            ),
         const SizedBox(height: 14),
         const _SectionTitle('Assignments & Quizzes'),
         GestureDetector(
-          onTap: () => context.push(AppRoutes.menteeQuiz),
+          onTap: () => context.push(
+            AppRoutes.menteeQuiz,
+            extra: {
+              'moduleId': data.activeModule?.id != null
+                  ? int.tryParse(data.activeModule!.id)
+                  : 1,
+            },
+          ),
           child: AppCard(
             child: Row(
               children: [
                 Icon(Icons.quiz_outlined, color: AppColors.primary),
                 const SizedBox(width: 12),
                 const Expanded(
-                  child: Text('Practice quiz (sample)',
+                  child: Text('Clinical Knowledge Check Quiz',
                       style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
                 const Icon(Icons.chevron_right),
@@ -261,8 +282,12 @@ class _ContinueCard extends StatelessWidget {
     final mutedColor = Theme.of(context).colorScheme.onSurfaceVariant;
 
     if (lesson == null || module == null) {
-      return const AppCard(
-        child: Text("You've completed every lesson. Well done!"),
+      return AppCard(
+        child: Text(
+          data.chapters.isEmpty
+              ? 'No modules assigned yet. Your mentor will assign modules and resources to you.'
+              : "You've completed every lesson. Well done!",
+        ),
       );
     }
 

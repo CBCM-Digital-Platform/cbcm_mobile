@@ -45,11 +45,14 @@ class DioCurriculumRepository implements CurriculumRepository {
         }
       }
 
-      // If still empty (e.g. offline, mock, or empty backend database), use seed data fallback
+      // If no modules assigned or available, return empty progress without mock fallback
       if (moduleItems.isEmpty) {
-        return menteeId == 'mentee-1'
-            ? CurriculumSeedData.inProgressMentee
-            : CurriculumSeedData.freshMentee;
+        return const CurriculumProgress(
+          cohortLabel: 'Midwifery Clinical Mentorship',
+          chapters: [],
+          cpdHoursAccrued: 0,
+          cpdHoursRequired: 30,
+        );
       }
 
       // 2. For each module, fetch contents and completion progress

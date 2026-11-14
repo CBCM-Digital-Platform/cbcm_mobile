@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../domain/learning_resource.dart';
 import '../domain/resource_repository.dart';
-import 'mock_resource_repository.dart';
 
 class DioResourceRepository implements ResourceRepository {
   const DioResourceRepository(this._dio);
@@ -11,8 +10,25 @@ class DioResourceRepository implements ResourceRepository {
 
   @override
   Future<List<LearningResource>> getResources() async {
+    // 1. Try mentee personal resource assignments first (/learning/my/resources)
     try {
-      // 1. Try standard /resources endpoint
+      final myRes = await _dio.get('/learning/my/resources');
+      final myRaw = myRes.data;
+      final myList = myRaw is Map && myRaw['data'] is List
+          ? myRaw['data'] as List
+          : (myRaw is List ? myRaw : const []);
+      if (myList.isNotEmpty) {
+        return myList
+            .whereType<Map>()
+            .map((item) => _fromResourceJson(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+    } on DioException catch (e) {
+      debugPrint('[RESOURCES] /learning/my/resources: ${e.message}');
+    }
+
+    try {
+      // 2. Try standard /resources endpoint (catalog or mentor access)
       final res = await _dio.get(
         '/resources',
         queryParameters: {'limit': 100},
@@ -29,7 +45,7 @@ class DioResourceRepository implements ResourceRepository {
             .toList();
       }
 
-      // 2. If empty, check /hierarchical-resources
+      // 3. If empty, check /hierarchical-resources
       final hRes = await _dio.get(
         '/hierarchical-resources',
         queryParameters: {'limit': 100},
@@ -46,11 +62,11 @@ class DioResourceRepository implements ResourceRepository {
             .toList();
       }
 
-      // If backend returns empty catalog, return fallback demo catalog
-      return MockResourceRepository.all;
+      // Return empty list if no resources from backend
+      return const <LearningResource>[];
     } on DioException catch (e) {
-      debugPrint('[RESOURCES] Backend error: ${e.message}. Using fallback catalog.');
-      return MockResourceRepository.all;
+      debugPrint('[RESOURCES] Backend error: ${e.message}.');
+      return const <LearningResource>[];
     }
   }
 
@@ -91,12 +107,7 @@ class DioResourceRepository implements ResourceRepository {
       final intId = int.tryParse(rId);
       if (intId == null) continue;
       try {
-        await _dio.post(
-          '/hierarchical-resources/$intId/assign-mentee',
-          data: {
-            'mentee_ids': [menteeId],
-          },
-        );
+        await _dio.post('/resources/$intId/mentees/$menteeId');
       } on DioException catch (e) {
         debugPrint('[ASSIGN] assign resource $intId to mentee $menteeId: ${e.message}');
       }
@@ -108,9 +119,12 @@ class DioResourceRepository implements ResourceRepository {
     // Starred state is maintained per-user in secure storage on the phone.
   }
 
-  LearningResource _fromResourceJson(Map<String, dynamic> j) {
-    final id = (j['id'] ?? '').toString();
-    final title = (j['title'] ?? '').toString();
+  LearningResource _fromResourceJson(Map<String, dynamic> raw) {
+    final res = raw['resource'] is Map ? raw['resource'] as Map : null;
+    final j = res != null ? Map<String, dynamic>.from(res) : raw;
+
+    final id = (j['id'] ?? raw['resourceId'] ?? raw['resource_id'] ?? '').toString();
+    final title = (j['title'] ?? 'Learning Resource').toString();
     final type = _parseType(j['type']);
 
     final category = j['thematicArea'] is Map
