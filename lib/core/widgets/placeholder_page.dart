@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'app_drawer.dart';
+import 'main_app_bar.dart';
 
 class PlaceholderPage extends StatelessWidget {
   const PlaceholderPage({super.key, required this.title, this.subtitle});
@@ -9,7 +11,8 @@ class PlaceholderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      drawer: const AppDrawer(),
+      appBar: MainAppBar(title: title),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

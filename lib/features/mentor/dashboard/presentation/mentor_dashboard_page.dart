@@ -6,13 +6,11 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/stat_card.dart';
+import '../../../../core/widgets/main_app_bar.dart';
 import '../data/mentor_repository_provider.dart';
 import '../domain/mentor_summary.dart';
-import '../../../auth/presentation/profile_menu_button.dart';
-import '../../../notifications/presentation/notification_bell.dart';
 import '../../sessions/presentation/meeting_launcher.dart';
 import '../../../../core/widgets/app_drawer.dart';
-import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../../routing/app_routes.dart';
 import 'package:go_router/go_router.dart';
 
@@ -44,28 +42,8 @@ class MentorDashboardPage extends ConsumerWidget {
 
     return Scaffold(
       drawer: const AppDrawer(),
-      appBar: AppBar(
-        leading: Builder(
-          builder: (c) => IconButton(
-            icon: const Icon(Icons.menu),
-            tooltip: 'Open navigation',
-            onPressed: () => Scaffold.of(c).openDrawer(),
-          ),
-        ),
-        title: Text(
-          'MidwifeMentor',
-          style: TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: AppColors.primary,
-        actions: const [
-          ThemeToggleButton(),
-          NotificationBell(),
-          ProfileMenuButton(),
-        ],
+      appBar: const MainAppBar(
+        title: 'CBCM',
       ),
       body: summary.when(
         loading: () => const Center(child: CircularProgressIndicator()),

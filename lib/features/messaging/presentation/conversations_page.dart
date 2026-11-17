@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_drawer.dart';
+import '../../../core/widgets/main_app_bar.dart';
 import '../data/messaging_providers.dart';
 import '../data/messaging_repository.dart';
 import '../data/temporary_contacts.dart';
@@ -13,9 +15,7 @@ import 'message_time.dart';
 import 'messaging_widgets.dart';
 import 'contact_picker.dart';
 
-enum _Filter { all, mentors, mentees }
-
-/// The Message tab: list of conversations with search and filters.
+/// The Message tab: list of conversations with search.
 class ConversationsPage extends ConsumerStatefulWidget {
   const ConversationsPage({super.key});
 
@@ -26,18 +26,11 @@ class ConversationsPage extends ConsumerStatefulWidget {
 class _ConversationsPageState extends ConsumerState<ConversationsPage> {
   final _searchController = TextEditingController();
   String _query = '';
-  _Filter _filter = _Filter.all;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  bool _matchesFilter(Conversation c, int? myId) {
-    if (_filter == _Filter.all) return true;
-    final wanted = _filter == _Filter.mentors ? 'mentor' : 'mentee';
-    return c.others(myId).any((p) => p.role.toLowerCase().contains(wanted));
   }
 
   Future<void> _openChat(Conversation c) async {
@@ -58,6 +51,10 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: const AppDrawer(),
+      appBar: const MainAppBar(
+        title: 'Messages',
+      ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'conversations_fab',
         onPressed: _newMessage,
@@ -68,16 +65,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Text(
-                'Messages',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-            ),
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Builder(
@@ -128,18 +116,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                 },
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-              child: Row(
-                children: [
-                  _chip('All', _Filter.all),
-                  const SizedBox(width: 8),
-                  _chip('Mentors', _Filter.mentors),
-                  const SizedBox(width: 8),
-                  _chip('Mentees', _Filter.mentees),
-                ],
-              ),
-            ),
+            const SizedBox(height: 8),
             Expanded(
               child: conversations.when(
                 skipLoadingOnReload: true,
@@ -153,7 +130,6 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                 data: (all) {
                   final q = _query.trim().toLowerCase();
                   final shown = all.where((c) {
-                    if (!_matchesFilter(c, myId)) return false;
                     if (q.isEmpty) return true;
                     return c.title(myId).toLowerCase().contains(q) ||
                         (c.lastMessage?.content ?? '')
@@ -191,48 +167,6 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _chip(String label, _Filter value) {
-    final selected = _filter == value;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: selected
-            ? AppColors.primary
-            : (isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100),
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: () => setState(() => _filter = value),
-          borderRadius: BorderRadius.circular(20),
-          splashColor: AppColors.primary.withValues(alpha: 0.2),
-          highlightColor: AppColors.primary.withValues(alpha: 0.1),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: selected
-                    ? AppColors.primary
-                    : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                width: 1.2,
-              ),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected
-                    ? Colors.white
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-              ),
-            ),
-          ),
         ),
       ),
     );

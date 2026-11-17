@@ -33,6 +33,10 @@ class SessionModel {
   bool get isInProgress => status.toLowerCase() == 'in_progress';
   bool get isScheduled => status.toLowerCase() == 'scheduled';
   bool get isCompleted => status.toLowerCase() == 'completed';
+  bool get isCancelled =>
+      status.toLowerCase() == 'cancelled' ||
+      status.toLowerCase() == 'canceled' ||
+      status.toLowerCase() == 'rescheduled';
 
   factory SessionModel.fromJson(Map<String, dynamic> json) {
     DateTime parsedTime;

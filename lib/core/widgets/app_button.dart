@@ -24,14 +24,24 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = Text(label);
+    Widget content = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
     if (trailingIcon != null || icon != null) {
       content = Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (icon != null) ...[icon!, const SizedBox(width: 8)],
-          Text(label),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           if (trailingIcon != null) ...[const SizedBox(width: 8), trailingIcon!],
         ],
       );

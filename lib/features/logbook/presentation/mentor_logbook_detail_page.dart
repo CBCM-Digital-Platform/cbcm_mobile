@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_response.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_button_row.dart';
 import '../../../core/widgets/app_card.dart';
 import '../data/logbook_providers.dart';
 import '../domain/logbook_entry.dart';
@@ -47,18 +48,18 @@ class _MentorLogbookDetailPageState extends ConsumerState<MentorLogbookDetailPag
             ],
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF16A34A),
-              foregroundColor: Colors.white,
+          AppButtonRow(
+            secondary: AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(ctx).pop(false),
             ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Confirm & Approve'),
+            primary: AppButton(
+              label: 'Approve & Verify',
+              onPressed: () => Navigator.of(ctx).pop(true),
+            ),
           ),
         ],
       ),
@@ -85,7 +86,7 @@ class _MentorLogbookDetailPageState extends ConsumerState<MentorLogbookDetailPag
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            backgroundColor: Color(0xFF16A34A),
+            backgroundColor: AppColors.primary,
             content: Text('Logbook entry approved and verified successfully!'),
           ),
         );
@@ -133,22 +134,22 @@ class _MentorLogbookDetailPageState extends ConsumerState<MentorLogbookDetailPag
             ),
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warning,
-              foregroundColor: Colors.white,
+          AppButtonRow(
+            secondary: AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(ctx).pop(false),
             ),
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.of(ctx).pop(true);
-              }
-            },
-            child: const Text('Send to Mentee'),
+            primary: AppButton(
+              label: 'Send Request',
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(ctx).pop(true);
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -176,7 +177,7 @@ class _MentorLogbookDetailPageState extends ConsumerState<MentorLogbookDetailPag
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            backgroundColor: AppColors.warning,
+            backgroundColor: AppColors.primary,
             content: Text('Revision request sent to mentee.'),
           ),
         );
@@ -380,19 +381,19 @@ class _MentorLogbookDetailPageState extends ConsumerState<MentorLogbookDetailPag
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.12),
+                    color: const Color(0xFFFFD22B).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+                    border: Border.all(color: const Color(0xFFFFD22B).withValues(alpha: 0.5)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Active Revision Request:',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.warning,
+                          color: isDark ? const Color(0xFFFFD22B) : const Color(0xFF7A610A),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -419,22 +420,17 @@ class _MentorLogbookDetailPageState extends ConsumerState<MentorLogbookDetailPag
                     ),
                   )
                 else ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: AppButton(
-                      label: 'Approve & Verify Procedure',
-                      icon: const Icon(Icons.check_circle_outline),
-                      onPressed: () => _approve(entry),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: AppButton(
+                  AppButtonRow(
+                    secondary: AppButton(
                       label: 'Request Revision',
                       variant: AppButtonVariant.secondary,
-                      icon: const Icon(Icons.assignment_return_outlined),
+                      icon: const Icon(Icons.assignment_return_outlined, size: 16),
                       onPressed: () => _requestRevision(entry),
+                    ),
+                    primary: AppButton(
+                      label: 'Approve & Verify',
+                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      onPressed: () => _approve(entry),
                     ),
                   ),
                 ],

@@ -266,27 +266,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               onPressed: _saving ? null : _save,
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: AppButton(
-              label: 'Change Password',
-              variant: AppButtonVariant.secondary,
-              icon: const Icon(Icons.lock_outline, size: 18),
-              onPressed: () => ChangePasswordSheet.show(context),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: AppButton(
-              label: 'Log Out',
-              variant: AppButtonVariant.danger,
-              icon: const Icon(Icons.logout, size: 18),
-              onPressed: () => confirmAndLogout(context, ref),
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
       ),
     );

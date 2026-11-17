@@ -36,6 +36,15 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    applicationVariants.all {
+        outputs.all {
+            val output = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            if (buildType.name == "release") {
+                output?.outputFileName = "cbcm.apk"
+            }
+        }
+    }
 }
 
 kotlin {

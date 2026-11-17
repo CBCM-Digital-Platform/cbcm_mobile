@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/main_app_bar.dart';
 import '../../../messaging/data/temporary_contacts.dart';
 import '../../../messaging/presentation/contact_picker.dart';
 import '../../sessions/presentation/schedule_session_sheet.dart';
@@ -38,6 +40,10 @@ class _MenteesPageState extends ConsumerState<MenteesPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: const AppDrawer(),
+      appBar: const MainAppBar(
+        title: 'My Mentees',
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -47,15 +53,6 @@ class _MenteesPageState extends ConsumerState<MenteesPage> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // Header
-              Text(
-                'My Mentees',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 4),
               Text(
                 'Manage and track your assigned nursing students.',
                 style: TextStyle(
@@ -363,7 +360,9 @@ class _MenteeCard extends ConsumerWidget {
               const SizedBox(height: 12),
 
               // Badges Row
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   Container(
                     padding:
@@ -409,7 +408,6 @@ class _MenteeCard extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
@@ -433,44 +431,83 @@ class _MenteeCard extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              // Action Buttons: Schedule full width on top, Message full width below
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: 'Schedule Session',
-                  onPressed: onSchedule,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: 'Message',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: () {
-                    if (mentee.messageUser != null) {
-                      openChatWith(context, ref, mentee.messageUser!);
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: 'View Clinical Logbook',
-                  variant: AppButtonVariant.secondary,
-                  icon: const Icon(Icons.menu_book_outlined),
-                  onPressed: () {
-                    context.push(
-                      AppRoutes.mentorLogbookReview,
-                      extra: {
-                        'menteeId': mentee.id,
-                        'menteeName': mentee.fullName,
+              // Action Buttons: Clinical Logbook primary with compact Schedule & Message quick actions
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      label: 'Clinical Logbook',
+                      icon: const Icon(Icons.menu_book_outlined, size: 18),
+                      onPressed: () {
+                        context.push(
+                          AppRoutes.mentorLogbookReview,
+                          extra: {
+                            'menteeId': mentee.id,
+                            'menteeName': mentee.fullName,
+                          },
+                        );
                       },
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Schedule Session',
+                    child: Material(
+                      color: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: onSchedule,
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.calendar_month_outlined,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Message Mentee',
+                    child: Material(
+                      color: isDark ? AppColors.darkElevatedSurface : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () {
+                          if (mentee.messageUser != null) {
+                            openChatWith(context, ref, mentee.messageUser!);
+                          }
+                        },
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.chat_bubble_outline,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -610,7 +647,59 @@ class _MenteeCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+
+              // Quick action buttons for Schedule and Message
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.calendar_month_outlined, size: 17),
+                      label: const Text(
+                        'Schedule Session',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onSchedule();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.chat_bubble_outline, size: 17),
+                      label: const Text(
+                        'Message',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        if (mentee.messageUser != null) {
+                          openChatWith(context, ref, mentee.messageUser!);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
 
               // Clinical Progress Section
               Text(
@@ -664,7 +753,8 @@ class _MenteeCard extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: AppButton(
-                  label: 'Learning access',
+                  label: 'Learning Access',
+                  icon: const Icon(Icons.school_outlined, size: 18),
                   onPressed: () {
                     Navigator.of(context, rootNavigator: true).push(
                       MaterialPageRoute(
@@ -677,42 +767,13 @@ class _MenteeCard extends ConsumerWidget {
                   },
                 ),
               ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  label: 'Schedule Clinical Session',
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    onSchedule();
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
                     child: AppButton(
-                      label: 'Certificate',
-                      variant: AppButtonVariant.secondary,
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (_) => CertificateEligibilitySheet(
-                            menteeId: mentee.id,
-                            menteeName: mentee.fullName,
-                            cycleId: mentee.cycleId ?? 1,
-                            thematicAreaId: mentee.thematicAreaId ?? 1,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: AppButton(
                       label: 'Assessments',
+                      icon: const Icon(Icons.assignment_outlined, size: 18),
                       variant: AppButtonVariant.secondary,
                       onPressed: () {
                         Navigator.of(context, rootNavigator: true).push(
@@ -729,16 +790,23 @@ class _MenteeCard extends ConsumerWidget {
                       },
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: AppButton(
-                      label: 'Message',
+                      label: 'Certificate',
+                      icon: const Icon(Icons.workspace_premium_outlined, size: 18),
                       variant: AppButtonVariant.secondary,
                       onPressed: () {
-                        Navigator.of(context).pop();
-                        if (mentee.messageUser != null) {
-                          openChatWith(context, ref, mentee.messageUser!);
-                        }
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => CertificateEligibilitySheet(
+                            menteeId: mentee.id,
+                            menteeName: mentee.fullName,
+                            cycleId: mentee.cycleId ?? 1,
+                            thematicAreaId: mentee.thematicAreaId ?? 1,
+                          ),
+                        );
                       },
                     ),
                   ),

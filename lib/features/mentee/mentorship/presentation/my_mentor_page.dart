@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/main_app_bar.dart';
 import '../../../messaging/data/temporary_contacts.dart';
 import '../../../messaging/domain/message_models.dart';
 import '../../../messaging/presentation/contact_picker.dart';
@@ -27,6 +29,10 @@ class MyMentorPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: const AppDrawer(),
+      appBar: const MainAppBar(
+        title: 'My Mentor',
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -47,14 +53,6 @@ class MyMentorPage extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
             children: [
-              Text(
-                'My Mentor',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 16),
               if (loading && mentors.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(top: 40),

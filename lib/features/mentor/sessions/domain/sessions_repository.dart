@@ -47,6 +47,11 @@ abstract class SessionsRepository {
 
   Future<SessionModel> createSession(Map<String, dynamic> sessionData);
 
+  Future<SessionModel> rescheduleSession({
+    required int sessionId,
+    required Map<String, dynamic> payload,
+  });
+
   Future<JitsiJoinToken> getJoinToken(int sessionId);
 
   /// GET /sessions/available-times

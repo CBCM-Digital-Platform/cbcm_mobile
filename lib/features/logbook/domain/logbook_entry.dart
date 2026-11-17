@@ -205,7 +205,7 @@ class LogbookEntry {
         return AppColors.primary;
       case 'revision_requested':
       case 'needs_revision':
-        return AppColors.warning;
+        return const Color(0xFFD4A017); // Golden Yellow accent
       case 'rejected':
       case 'cancelled':
         return Colors.red.shade700;

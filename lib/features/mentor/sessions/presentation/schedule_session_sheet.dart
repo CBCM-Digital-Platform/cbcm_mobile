@@ -9,6 +9,7 @@ import '../../../messaging/data/temporary_contacts.dart';
 import '../../../notifications/data/notifications_repository.dart';
 import '../data/assignments_provider.dart';
 import '../data/sessions_repository_provider.dart';
+import '../domain/session_model.dart';
 import '../domain/sessions_repository.dart';
 import 'mentor_sessions_page.dart';
 
@@ -18,26 +19,49 @@ class ScheduleSessionSheet extends ConsumerStatefulWidget {
     this.initialMenteeName,
     this.initialMenteeId,
     this.initialAssignmentId,
+    this.rescheduleSessionId,
+    this.initialDate,
+    this.initialTimeSlot,
+    this.initialMode,
+    this.initialTopic,
+    this.initialNotes,
   });
 
   final String? initialMenteeName;
   final int? initialMenteeId;
   final int? initialAssignmentId;
+  final int? rescheduleSessionId;
+  final DateTime? initialDate;
+  final TimeSlot? initialTimeSlot;
+  final String? initialMode;
+  final String? initialTopic;
+  final String? initialNotes;
 
   static Future<void> show(
     BuildContext context, {
     String? menteeName,
     int? menteeId,
     int? assignmentId,
+    SessionModel? rescheduleSession,
   }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => ScheduleSessionSheet(
-        initialMenteeName: menteeName,
-        initialMenteeId: menteeId,
-        initialAssignmentId: assignmentId,
+        initialMenteeName: menteeName ?? rescheduleSession?.menteeName,
+        initialMenteeId: menteeId ?? rescheduleSession?.menteeId,
+        initialAssignmentId: assignmentId ?? rescheduleSession?.assignmentId,
+        rescheduleSessionId: rescheduleSession?.id,
+        initialDate: rescheduleSession?.scheduledStartTime,
+        initialTimeSlot: rescheduleSession != null
+            ? TimeSlot(
+                hour: rescheduleSession.scheduledStartTime.toLocal().hour,
+                minute: rescheduleSession.scheduledStartTime.toLocal().minute,
+              )
+            : null,
+        initialMode: rescheduleSession?.mode,
+        initialTopic: rescheduleSession?.sessionGoals,
       ),
     );
   }
@@ -59,13 +83,33 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     'Postnatal Care Review',
   ];
 
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  late DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeSlot? _selectedSlot;
   String _sessionMode = 'virtual'; // 'virtual' or 'in_person'
   String _selectedTopic = _topics.first;
   int? _selectedAssignmentId;
   final _notesController = TextEditingController();
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialDate != null) {
+      _selectedDate = widget.initialDate!.toLocal();
+    }
+    if (widget.initialTimeSlot != null) {
+      _selectedSlot = widget.initialTimeSlot;
+    }
+    if (widget.initialMode != null) {
+      _sessionMode = widget.initialMode!;
+    }
+    if (widget.initialTopic != null && _topics.contains(widget.initialTopic)) {
+      _selectedTopic = widget.initialTopic!;
+    }
+    if (widget.initialNotes != null) {
+      _notesController.text = widget.initialNotes!;
+    }
+  }
 
   @override
   void dispose() {
@@ -165,16 +209,22 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Schedule Session',
+                      widget.rescheduleSessionId != null
+                          ? 'Reschedule Session'
+                          : 'Schedule Session',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
                           ),
                     ),
                     Text(
-                      widget.initialMenteeName != null
-                          ? 'With ${widget.initialMenteeName}'
-                          : 'Choose a date and a free time',
+                      widget.rescheduleSessionId != null
+                          ? (widget.initialMenteeName != null
+                              ? 'With ${widget.initialMenteeName}'
+                              : 'Select a new date and time')
+                          : (widget.initialMenteeName != null
+                              ? 'With ${widget.initialMenteeName}'
+                              : 'Choose a date and a free time'),
                       style: TextStyle(
                         color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                         fontSize: 13,
@@ -334,7 +384,9 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
           SizedBox(
             width: double.infinity,
             child: AppButton(
-              label: _isSubmitting ? 'Scheduling...' : 'Confirm Schedule',
+              label: _isSubmitting
+                  ? (widget.rescheduleSessionId != null ? 'Rescheduling...' : 'Scheduling...')
+                  : (widget.rescheduleSessionId != null ? 'Confirm Reschedule' : 'Confirm Schedule'),
               onPressed: canSubmit ? _submit : null,
             ),
           ),
@@ -614,8 +666,17 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
       'status': 'scheduled',
     };
 
+    final isReschedule = widget.rescheduleSessionId != null;
+
     try {
-      await ref.read(sessionsRepositoryProvider).createSession(payload);
+      if (isReschedule) {
+        await ref.read(sessionsRepositoryProvider).rescheduleSession(
+              sessionId: widget.rescheduleSessionId!,
+              payload: payload,
+            );
+      } else {
+        await ref.read(sessionsRepositoryProvider).createSession(payload);
+      }
       ref.invalidate(mentorSessionsProvider);
       ref.invalidate(menteeSessionsProvider);
       ref.invalidate(notificationsProvider);
@@ -625,7 +686,9 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Session scheduled for ${_formatDate(_selectedDate)} at ${slot.label}.',
+            isReschedule
+                ? 'Session rescheduled for ${_formatDate(_selectedDate)} at ${slot.label}.'
+                : 'Session scheduled for ${_formatDate(_selectedDate)} at ${slot.label}.',
           ),
           backgroundColor: Colors.green,
         ),
@@ -638,8 +701,10 @@ class _ScheduleSessionSheetState extends ConsumerState<ScheduleSessionSheet> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not schedule the session. Please try again.'),
+        SnackBar(
+          content: Text(isReschedule
+              ? 'Could not reschedule the session. Please try again.'
+              : 'Could not schedule the session. Please try again.'),
           backgroundColor: Colors.red,
         ),
       );

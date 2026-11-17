@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_info.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/app_button.dart';
@@ -12,7 +11,7 @@ import '../data/auth_repository_provider.dart';
 import 'current_role_provider.dart';
 
 /// Shows the confirmation dialog and, if confirmed, signs the user out.
-/// Shared by Mentee and Mentor.
+/// Shared by Mentee and Mentor across the Drawer and Profile page.
 Future<void> confirmAndLogout(BuildContext context, WidgetRef ref) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -20,10 +19,11 @@ Future<void> confirmAndLogout(BuildContext context, WidgetRef ref) async {
   );
   if (confirmed != true) return;
 
-  // Close the drawer if it's currently open
-  final scaffoldState = Scaffold.maybeOf(context);
-  if (scaffoldState?.isDrawerOpen ?? false) {
-    Navigator.of(context).pop();
+  if (context.mounted) {
+    final scaffoldState = Scaffold.maybeOf(context);
+    if (scaffoldState?.isDrawerOpen ?? false) {
+      Navigator.of(context).pop();
+    }
   }
 
   // Fire backend revocation in background so UI logout is instantaneous.
@@ -85,11 +85,12 @@ class _LogoutDialog extends StatelessWidget {
             AppButtonRow(
               secondary: AppButton(
                 label: 'Cancel',
-                variant: AppButtonVariant.danger,
+                variant: AppButtonVariant.secondary,
                 onPressed: () => Navigator.of(context).pop(false),
               ),
               primary: AppButton(
                 label: 'Log Out',
+                variant: AppButtonVariant.danger,
                 onPressed: () => Navigator.of(context).pop(true),
               ),
             ),

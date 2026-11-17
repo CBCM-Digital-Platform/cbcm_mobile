@@ -6,14 +6,12 @@ import '../../../../core/storage/storage_keys.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/main_app_bar.dart';
 import '../../../../core/widgets/stat_card.dart';
-import '../../../../core/widgets/theme_toggle_button.dart';
 import '../../../../routing/app_routes.dart';
 import '../../../logbook/data/logbook_providers.dart';
 import '../../learning/domain/curriculum.dart';
 import '../../learning/presentation/curriculum_controller.dart';
-import '../../../auth/presentation/profile_menu_button.dart';
-import '../../../notifications/presentation/notification_bell.dart';
 import '../../../mentor/sessions/presentation/mentor_sessions_page.dart';
 import '../../../mentor/sessions/presentation/schedule_session_sheet.dart';
 import '../../../mentor/sessions/presentation/meeting_launcher.dart';
@@ -51,32 +49,26 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(),
-      appBar: AppBar(
-        leading: Builder(
-          builder: (c) => IconButton(
-            icon: const Icon(Icons.menu),
-            tooltip: 'Open navigation',
-            onPressed: () => Scaffold.of(c).openDrawer(),
-          ),
-        ),
-        title: name.when(
+      appBar: MainAppBar(
+        title: 'Mentee',
+        titleWidget: name.when(
           data: (n) => Text(
             'Mentee: $n',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
-          loading: () => Text(
+          loading: () => const Text(
             'Mentee',
             style: TextStyle(
               color: AppColors.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
-          error: (_, __) => Text(
+          error: (_, _) => const Text(
             'Mentee',
             style: TextStyle(
               color: AppColors.primary,
@@ -84,14 +76,6 @@ class _MenteeDashboardPageState extends ConsumerState<MenteeDashboardPage> {
             ),
           ),
         ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: AppColors.primary,
-        elevation: 0,
-        actions: const [
-          ThemeToggleButton(),
-          NotificationBell(),
-          ProfileMenuButton(),
-        ],
       ),
       body: curriculum.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -1645,7 +1629,8 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
       ),
       error: (_, _) => const SizedBox.shrink(),
       data: (sessions) {
-        if (sessions.isEmpty) {
+        final activeSessions = sessions.where((s) => !s.isCancelled && !s.isCompleted).toList();
+        if (activeSessions.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1683,7 +1668,7 @@ class _PracticalDemoSessionCard extends ConsumerWidget {
           );
         }
 
-        final session = sessions.first;
+        final session = activeSessions.first;
         final dt = session.scheduledStartTime;
         final monthStr = _months[dt.month - 1];
         final dayStr = dt.day.toString();

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_drawer.dart';
+import '../../../../core/widgets/main_app_bar.dart';
 import '../../../../routing/app_routes.dart';
 import '../domain/curriculum.dart';
 import 'curriculum_controller.dart';
@@ -18,6 +20,10 @@ class LearnPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: const AppDrawer(),
+      appBar: const MainAppBar(
+        title: 'Learning',
+      ),
       body: SafeArea(
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -47,14 +53,6 @@ class _LearnBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(
-          'Learning',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 16),
         _OverallCard(data: data),
         const SizedBox(height: 16),
         _ContinueCard(data: data),

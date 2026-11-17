@@ -6,9 +6,7 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_drawer.dart';
-import '../../../../core/widgets/theme_toggle_button.dart';
-import '../../../auth/presentation/profile_menu_button.dart';
-import '../../../notifications/presentation/notification_bell.dart';
+import '../../../../core/widgets/main_app_bar.dart';
 import '../data/sessions_repository_provider.dart';
 import '../domain/session_model.dart';
 import 'meeting_launcher.dart';
@@ -50,29 +48,8 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
-      appBar: AppBar(
-        leading: Builder(
-          builder: (c) => IconButton(
-            icon: const Icon(Icons.menu),
-            tooltip: 'Open navigation',
-            onPressed: () => Scaffold.of(c).openDrawer(),
-          ),
-        ),
-        title: Text(
-          'Clinical Sessions',
-          style: TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: AppColors.primary,
-        elevation: 0,
-        actions: const [
-          ThemeToggleButton(),
-          NotificationBell(),
-          ProfileMenuButton(),
-        ],
+      appBar: const MainAppBar(
+        title: 'Clinical Sessions',
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'mentor_sessions_fab',
@@ -134,11 +111,14 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
                     final now = DateTime.now();
                     final filtered = sessions.where((s) {
                       if (_selectedTab == 0) {
-                        return s.scheduledStartTime.isAfter(now.subtract(const Duration(hours: 1))) ||
-                            s.isInProgress;
+                        return !s.isCancelled &&
+                            !s.isCompleted &&
+                            (s.scheduledStartTime.isAfter(now.subtract(const Duration(hours: 1))) ||
+                                s.isInProgress);
                       } else {
-                        return s.scheduledStartTime.isBefore(now.subtract(const Duration(hours: 1))) ||
-                            s.isCompleted;
+                        return s.isCompleted ||
+                            s.isCancelled ||
+                            s.scheduledStartTime.isBefore(now.subtract(const Duration(hours: 1)));
                       }
                     }).toList();
 
@@ -198,6 +178,7 @@ class _MentorSessionsPageState extends ConsumerState<MentorSessionsPage> {
                               menteeName: session.menteeName,
                               menteeId: session.menteeId,
                               assignmentId: session.assignmentId,
+                              rescheduleSession: session,
                             );
                             ref.invalidate(mentorSessionsProvider);
                           },

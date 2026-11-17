@@ -13,7 +13,7 @@ class App extends ConsumerWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'CBCM Mobile',
+      title: 'CBCM',
       routerConfig: ref.watch(appRouterProvider),
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

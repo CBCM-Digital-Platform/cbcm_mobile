@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/colors.dart';
+import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_button_row.dart';
 import '../../../core/widgets/app_card.dart';
 import '../data/logbook_providers.dart';
 import '../domain/logbook_entry.dart';
@@ -57,18 +59,18 @@ class _MentorLogbookReviewPageState extends ConsumerState<MentorLogbookReviewPag
             ],
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF16A34A),
-              foregroundColor: Colors.white,
+          AppButtonRow(
+            secondary: AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(ctx).pop(false),
             ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Approve & Verify'),
+            primary: AppButton(
+              label: 'Approve & Verify',
+              onPressed: () => Navigator.of(ctx).pop(true),
+            ),
           ),
         ],
       ),
@@ -88,7 +90,7 @@ class _MentorLogbookReviewPageState extends ConsumerState<MentorLogbookReviewPag
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            backgroundColor: Color(0xFF16A34A),
+            backgroundColor: AppColors.primary,
             content: Text('Logbook entry approved and verified successfully!'),
           ),
         );
@@ -135,22 +137,22 @@ class _MentorLogbookReviewPageState extends ConsumerState<MentorLogbookReviewPag
             ),
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warning,
-              foregroundColor: Colors.white,
+          AppButtonRow(
+            secondary: AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(ctx).pop(false),
             ),
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.of(ctx).pop(true);
-              }
-            },
-            child: const Text('Send Revision Request'),
+            primary: AppButton(
+              label: 'Send Request',
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(ctx).pop(true);
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -169,7 +171,7 @@ class _MentorLogbookReviewPageState extends ConsumerState<MentorLogbookReviewPag
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            backgroundColor: AppColors.warning,
+            backgroundColor: AppColors.primary,
             content: Text('Revision request sent to mentee.'),
           ),
         );
@@ -310,7 +312,7 @@ class _MentorLogbookReviewPageState extends ConsumerState<MentorLogbookReviewPag
                       _FilterChip(
                         label: 'Revision Requested ($revisionCount)',
                         selected: _selectedFilter == 'needs_revision',
-                        color: AppColors.warning,
+                        color: const Color(0xFFD4A017),
                         onSelected: () => setState(() => _selectedFilter = 'needs_revision'),
                       ),
                       const SizedBox(width: 8),
@@ -582,18 +584,22 @@ class _MentorLogbookCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.1),
+                  color: const Color(0xFFFFD22B).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                  border: Border.all(color: const Color(0xFFFFD22B).withValues(alpha: 0.5)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, color: AppColors.warning, size: 14),
+                    const Icon(Icons.info_outline, color: Color(0xFFB8860B), size: 14),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Awaiting mentee updates: "${item.revisionReason}"',
-                        style: const TextStyle(fontSize: 12, color: AppColors.warning),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFFFFD22B) : const Color(0xFF7A610A),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -606,32 +612,18 @@ class _MentorLogbookCard extends StatelessWidget {
               const SizedBox(height: 14),
               const Divider(height: 1),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.assignment_return_outlined, size: 16),
-                      label: const Text('Request Revision'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.warning,
-                        side: const BorderSide(color: AppColors.warning),
-                      ),
-                      onPressed: onRequestRevision,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.check_circle_outline, size: 16),
-                      label: const Text('Approve & Verify'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A34A),
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: onApprove,
-                    ),
-                  ),
-                ],
+              AppButtonRow(
+                secondary: AppButton(
+                  label: 'Request Revision',
+                  variant: AppButtonVariant.secondary,
+                  icon: const Icon(Icons.assignment_return_outlined, size: 16),
+                  onPressed: onRequestRevision,
+                ),
+                primary: AppButton(
+                  label: 'Approve & Verify',
+                  icon: const Icon(Icons.check_circle_outline, size: 16),
+                  onPressed: onApprove,
+                ),
               ),
             ],
           ],

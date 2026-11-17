@@ -1,5 +1,5 @@
 class AppInfo {
   AppInfo._();
 
-  static const appName = 'MidwifePath';
+  static const appName = 'CBCM';
 }

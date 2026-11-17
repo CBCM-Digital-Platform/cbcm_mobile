@@ -85,6 +85,55 @@ class DioSessionsRepository implements SessionsRepository {
   }
 
   @override
+  Future<SessionModel> rescheduleSession({
+    required int sessionId,
+    required Map<String, dynamic> payload,
+  }) async {
+    // 1. Try PUT /sessions/$sessionId
+    try {
+      final response = await _dio.put(
+        ApiEndpoints.sessionDetails(sessionId),
+        data: payload,
+      );
+      debugPrint('[SESSION] reschedule PUT succeeded: ${response.statusCode} ${response.data}');
+      return SessionModel.fromJson(_map(response.data));
+    } on DioException catch (e) {
+      debugPrint('[SESSION] reschedule PUT failed: ${e.response?.statusCode} ${e.response?.data}');
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
+        try {
+          final patchResp = await _dio.patch(
+            ApiEndpoints.sessionDetails(sessionId),
+            data: payload,
+          );
+          debugPrint('[SESSION] reschedule PATCH succeeded: ${patchResp.statusCode} ${patchResp.data}');
+          return SessionModel.fromJson(_map(patchResp.data));
+        } catch (_) {}
+
+        try {
+          final postResp = await _dio.post(
+            '${ApiEndpoints.sessionDetails(sessionId)}/reschedule',
+            data: payload,
+          );
+          debugPrint('[SESSION] reschedule POST endpoint succeeded: ${postResp.statusCode} ${postResp.data}');
+          return SessionModel.fromJson(_map(postResp.data));
+        } catch (_) {}
+      } else if (e.response?.statusCode == 409) {
+        throw apiExceptionFromDio(e);
+      }
+    }
+
+    // 2. Fallback: If in-place update is not supported, cancel old session first so it doesn't conflict or duplicate:
+    try {
+      await updateSessionStatus(sessionId, 'cancelled');
+    } catch (e) {
+      debugPrint('[SESSION] cancelling old session status failed: $e');
+    }
+
+    // 3. Create the new session
+    return await createSession(payload);
+  }
+
+  @override
   Future<JitsiJoinToken> getJoinToken(int sessionId) async {
     Response? response;
     try {
