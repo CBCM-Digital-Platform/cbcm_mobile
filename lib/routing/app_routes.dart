@@ -9,6 +9,7 @@ class AppRoutes {
   static const settings = '/settings';
   static const profile = '/profile';
   static const help = '/help';
+  static const notifications = '/notifications';
   static const assessments = '/assessments';
   static const resources = '/resources';
   static const certificates = '/certificates';

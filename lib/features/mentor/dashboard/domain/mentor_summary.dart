@@ -28,12 +28,20 @@ class ActivityItem {
     required this.description,
     required this.timeAgo,
     this.tag,
+    this.entryId,
+    this.menteeId,
+    this.timestamp,
+    this.type,
   });
 
   final ActivityIconType icon;
   final String description;
   final String timeAgo;
   final String? tag;
+  final int? entryId;
+  final int? menteeId;
+  final DateTime? timestamp;
+  final String? type;
 }
 
 enum ActivityIconType { logbookSubmitted, clarificationRequested, approved }

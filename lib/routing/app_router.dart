@@ -2,6 +2,7 @@ import '../features/auth/presentation/forgot_password_page.dart';
 import '../features/certificates/presentation/certificates_page.dart';
 import '../features/assessments/assessments_page.dart';
 import '../features/help/presentation/help_page.dart';
+import '../features/notifications/presentation/notifications_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -80,7 +81,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           path == AppRoutes.certificates ||
           path == AppRoutes.settings ||
           path == AppRoutes.profile ||
-          path == AppRoutes.help) {
+          path == AppRoutes.help ||
+          path == AppRoutes.notifications) {
         return null;
       }
 
@@ -122,6 +124,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.help,
         builder: (context, state) => const HelpPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.notifications,
+        builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
         path: AppRoutes.moduleDetail,

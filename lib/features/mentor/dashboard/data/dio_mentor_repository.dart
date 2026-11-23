@@ -130,6 +130,7 @@ class DioMentorRepository implements MentorRepository {
 
     // 1. Pending logbook submissions
     for (final lb in pendingLogbooksList) {
+      final entryId = (lb['id'] ?? lb['entry_id'] ?? lb['entryId']) as num?;
       final mentee = lb['mentee'] is Map ? lb['mentee'] as Map : null;
       final mId = (mentee?['id'] ?? lb['mentee_id'] ?? lb['menteeId']) as num?;
       final menteeName = (mentee?['full_name'] ??
@@ -139,19 +140,25 @@ class DioMentorRepository implements MentorRepository {
               'Mentee')
           .toString();
       final title = (lb['procedure_name'] ??
+              lb['procedureName'] ??
+              lb['procedure_type'] ??
+              lb['procedureType'] ??
               lb['title'] ??
               lb['topic'] ??
-              'Clinical Logbook entry')
+              'Clinical Procedure')
           .toString();
-      final createdAt = DateTime.tryParse(
-              '${lb['created_at'] ?? lb['createdAt'] ?? lb['entry_date'] ?? ''}')
-          ?.toLocal();
+      final dateRaw = lb['created_at'] ?? lb['createdAt'] ?? lb['entry_date'] ?? lb['entryDate'];
+      final createdAt = dateRaw != null ? DateTime.tryParse('$dateRaw')?.toLocal() : null;
 
       recentActivity.add(ActivityItem(
         icon: ActivityIconType.logbookSubmitted,
-        description: '$menteeName submitted $title.',
+        description: '$menteeName submitted "$title" for your review.',
         timeAgo: createdAt != null ? _timeAgo(createdAt, now) : 'Recently',
         tag: 'Logbook',
+        entryId: entryId?.toInt(),
+        menteeId: mId?.toInt(),
+        timestamp: createdAt,
+        type: 'logbook',
       ));
     }
 
@@ -203,12 +210,17 @@ class DioMentorRepository implements MentorRepository {
       }
 
       final timeAgoStr = createdAt != null ? _timeAgo(createdAt, now) : 'recently';
+      final entityId = (log['entity_id'] ?? log['entityId'] ?? log['reference_id'] ?? log['target_id'] ?? log['id']) as num?;
 
       recentActivity.add(ActivityItem(
         icon: iconType,
         description: desc,
         timeAgo: timeAgoStr,
         tag: entityType.isNotEmpty ? entityType.toLowerCase() : null,
+        entryId: entityId?.toInt(),
+        menteeId: actorId?.toInt(),
+        timestamp: createdAt,
+        type: entityType.toLowerCase(),
       ));
     }
 

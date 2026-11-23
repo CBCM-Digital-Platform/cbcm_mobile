@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../routing/app_routes.dart';
 import '../data/notifications_repository.dart';
-import 'notifications_page.dart';
 
 /// The bell in the top bar, with an unread-count badge.
 class NotificationBell extends ConsumerWidget {
@@ -16,9 +17,7 @@ class NotificationBell extends ConsumerWidget {
     return IconButton(
       tooltip: 'Notifications',
       onPressed: () async {
-        await Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(builder: (_) => const NotificationsPage()),
-        );
+        await context.push(AppRoutes.notifications);
         if (context.mounted) ref.invalidate(unreadCountProvider);
       },
       icon: Badge(
