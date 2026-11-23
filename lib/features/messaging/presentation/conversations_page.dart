@@ -6,6 +6,8 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_drawer.dart';
 import '../../../core/widgets/main_app_bar.dart';
+import '../../auth/domain/user_role.dart';
+import '../../auth/presentation/current_role_provider.dart';
 import '../data/messaging_providers.dart';
 import '../data/messaging_repository.dart';
 import '../data/temporary_contacts.dart';
@@ -173,9 +175,17 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
   }
 
   Widget _buildEmptyOrDirectContacts(BuildContext context, WidgetRef ref) {
+    final role = ref.watch(currentRoleProvider);
+    final isMentor = role == UserRole.mentor;
+    final isMentee = role == UserRole.mentee;
+
     final mentors = ref.watch(mentorContactsProvider);
     final mentees = ref.watch(menteeContactsProvider);
-    final assigned = <MessageUser>[...mentors, ...mentees];
+
+    // Mentors only see their mentees; mentees only see their mentors
+    final assigned = isMentor
+        ? mentees
+        : (isMentee ? mentors : <MessageUser>[...mentors, ...mentees]);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

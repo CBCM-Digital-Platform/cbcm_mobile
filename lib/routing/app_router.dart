@@ -34,6 +34,8 @@ import '../features/mentee/settings/presentation/settings_page.dart';
 import '../features/profile/presentation/profile_page.dart';
 import 'app_routes.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.listen(currentRoleProvider, (previous, next) => refresh.value++);
@@ -45,6 +47,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       : AppRoutes.mentorDashboard;
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.home,
     refreshListenable: refresh,
     // Synchronous on purpose: no storage reads on navigation.
@@ -69,6 +72,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           path == AppRoutes.login ||
           path == AppRoutes.resetPassword) {
         return dashboardFor(role);
+      }
+
+      // Shared routes that both mentor and mentee can access
+      if (path == AppRoutes.assessments ||
+          path == AppRoutes.resources ||
+          path == AppRoutes.certificates ||
+          path == AppRoutes.settings ||
+          path == AppRoutes.profile ||
+          path == AppRoutes.help) {
+        return null;
       }
 
       if (path.startsWith('/mentee') && role != UserRole.mentee) {

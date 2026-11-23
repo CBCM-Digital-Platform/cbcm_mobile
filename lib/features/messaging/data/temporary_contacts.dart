@@ -36,12 +36,16 @@ final assignedMentorProvider = FutureProvider<MessageUser?>((ref) async {
 
 /// Everyone the user may message: server contacts, assigned mentees, and
 /// anyone they already chat with.
+/// Role-filtered so mentors only see mentees, and mentees only see mentors.
 final contactsProvider = Provider<List<MessageUser>>((ref) {
   final idAsync = ref.watch(currentUserIdProvider);
   final myId = idAsync.isLoading ? null : idAsync.value;
   final fromApi = ref.watch(contactsApiProvider).value ?? const <MessageUser>[];
   final conversations = ref.watch(conversationsProvider).value ?? const [];
-  final isMentor = ref.watch(currentRoleProvider) == UserRole.mentor;
+  final role = ref.watch(currentRoleProvider);
+  final isMentor = role == UserRole.mentor;
+  final isMentee = role == UserRole.mentee;
+
   final assignedMentees = isMentor
       ? (ref.watch(assignedMenteesProvider).value ?? const <AssignedMentee>[])
       : const <AssignedMentee>[];
@@ -49,7 +53,13 @@ final contactsProvider = Provider<List<MessageUser>>((ref) {
   final byId = <int, MessageUser>{};
 
   for (final p in fromApi) {
-    if (p.id > 0 && p.id != myId) byId[p.id] = p;
+    if (p.id > 0 && p.id != myId) {
+      // Role enforcement: a mentor can only message mentees; a mentee can only message mentors
+      final userRole = p.role.toLowerCase();
+      if (isMentor && !userRole.contains('mentee')) continue;
+      if (isMentee && !userRole.contains('mentor')) continue;
+      byId[p.id] = p;
+    }
   }
 
   for (final m in assignedMentees) {
@@ -62,6 +72,9 @@ final contactsProvider = Provider<List<MessageUser>>((ref) {
     if (c.type != 'direct') continue;
     for (final p in c.participants) {
       if (p.id <= 0 || p.id == myId) continue;
+      final userRole = p.role.toLowerCase();
+      if (isMentor && !userRole.contains('mentee')) continue;
+      if (isMentee && !userRole.contains('mentor')) continue;
       byId.putIfAbsent(p.id, () => p);
     }
   }

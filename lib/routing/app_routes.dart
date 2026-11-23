@@ -9,6 +9,9 @@ class AppRoutes {
   static const settings = '/settings';
   static const profile = '/profile';
   static const help = '/help';
+  static const assessments = '/assessments';
+  static const resources = '/resources';
+  static const certificates = '/certificates';
 
   // Mentee (inside the bottom navigation bar)
   static const menteeDashboard = '/mentee/dashboard';
@@ -20,12 +23,12 @@ class AppRoutes {
   // Mentee (full-screen pages, outside the bottom bar)
   static const moduleDetail = '/mentee/module-detail';
   static const lessonReader = '/mentee/lesson-reader';
-  static const menteeResources = '/mentee/resources';
+  static const menteeResources = '/resources';
   static const menteeQuiz = '/mentee/quiz';
   static const menteeLogbook = '/mentee/logbook';
   static const menteeLogbookDetail = '/mentee/logbook-detail';
-  static const menteeAssessments = '/mentee/assessments';
-  static const menteeCertificates = '/mentee/certificates';
+  static const menteeAssessments = '/assessments';
+  static const menteeCertificates = '/certificates';
 
   // Mentor (inside the bottom navigation bar)
   static const mentorDashboard = '/mentor/dashboard';

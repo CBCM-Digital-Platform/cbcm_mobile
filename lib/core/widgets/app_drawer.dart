@@ -4,7 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/domain/user_role.dart';
 import '../../features/auth/presentation/current_role_provider.dart';
 import '../../features/auth/presentation/logout_dialog.dart';
+import '../../features/assessments/assessments_page.dart';
+import '../../features/certificates/presentation/certificate_eligibility_sheet.dart';
+import '../../features/mentor/mentees/presentation/learning_access_page.dart';
+import '../../features/mentor/mentees/presentation/mentee_picker_sheet.dart';
 import '../../features/profile/data/user_profile_repository.dart';
+import '../../routing/app_router.dart';
 import '../../routing/app_routes.dart';
 import '../constants/app_info.dart';
 import '../theme/colors.dart';
@@ -158,25 +163,90 @@ class AppDrawer extends ConsumerWidget {
                   _DrawerItem(
                     icon: Icons.assignment_outlined,
                     title: 'Assessments',
-                    onTap: () {
+                    onTap: () async {
+                      final navContext = rootNavigatorKey.currentContext ?? context;
                       Navigator.of(context).pop();
-                      context.push(AppRoutes.menteeAssessments);
+                      if (isMentor) {
+                        final picked = await MenteePickerSheet.show(
+                          navContext,
+                          title: 'Select Mentee for Assessments',
+                          subtitle: 'View competency assessments and evaluations',
+                        );
+                        if (picked != null) {
+                          rootNavigatorKey.currentState?.push(
+                            MaterialPageRoute(
+                              builder: (_) => AssessmentsPage(
+                                menteeId: picked.id,
+                                menteeName: picked.fullName,
+                                facilityId: picked.facilityId,
+                                cycleId: picked.cycleId,
+                                thematicAreaId: picked.thematicAreaId,
+                              ),
+                            ),
+                          );
+                        }
+                      } else {
+                        navContext.push(AppRoutes.assessments);
+                      }
                     },
                   ),
                   _DrawerItem(
                     icon: Icons.folder_shared_outlined,
                     title: 'Clinical Resources',
-                    onTap: () {
+                    onTap: () async {
+                      final navContext = rootNavigatorKey.currentContext ?? context;
                       Navigator.of(context).pop();
-                      context.push(AppRoutes.menteeResources);
+                      if (isMentor) {
+                        final picked = await MenteePickerSheet.show(
+                          navContext,
+                          title: 'Select Mentee for Resources',
+                          subtitle: 'Manage and assign clinical learning resources',
+                        );
+                        if (picked != null) {
+                          rootNavigatorKey.currentState?.push(
+                            MaterialPageRoute(
+                              builder: (_) => LearningAccessPage(
+                                picked.id,
+                                picked.fullName,
+                              ),
+                            ),
+                          );
+                        }
+                      } else {
+                        navContext.push(AppRoutes.resources);
+                      }
                     },
                   ),
                   _DrawerItem(
                     icon: Icons.verified_outlined,
                     title: 'Certificates',
-                    onTap: () {
+                    onTap: () async {
+                      final navContext = rootNavigatorKey.currentContext ?? context;
                       Navigator.of(context).pop();
-                      context.push(AppRoutes.menteeCertificates);
+                      if (isMentor) {
+                        final picked = await MenteePickerSheet.show(
+                          navContext,
+                          title: 'Select Mentee for Certificate',
+                          subtitle: 'View eligibility and issue clinical certificates',
+                        );
+                        if (picked != null) {
+                          final activeContext = rootNavigatorKey.currentContext;
+                          if (activeContext != null && activeContext.mounted) {
+                            showModalBottomSheet(
+                              context: activeContext,
+                              isScrollControlled: true,
+                              builder: (_) => CertificateEligibilitySheet(
+                                menteeId: picked.id,
+                                menteeName: picked.fullName,
+                                cycleId: picked.cycleId ?? 1,
+                                thematicAreaId: picked.thematicAreaId ?? 1,
+                              ),
+                            );
+                          }
+                        }
+                      } else {
+                        navContext.push(AppRoutes.certificates);
+                      }
                     },
                   ),
 
