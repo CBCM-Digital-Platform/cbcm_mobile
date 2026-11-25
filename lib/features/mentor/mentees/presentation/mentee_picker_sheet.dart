@@ -42,7 +42,17 @@ class _MenteePickerContent extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
+    return Contacd C:\dev\cbcm_mobile
+$files = Get-ChildItem lib -Recurse -Filter *.dart | ? { $_.Name -notlike '*.g.dart' }
+$out = @("=== LINES  FILE ===")
+$files | % { $out += ("{0,5}  {1}" -f (Get-Content $_.FullName).Count, $_.FullName.Substring((Get-Location).Path.Length+1)) }
+$out += "", "=== UNREFERENCED FILES (no other file mentions the name) ==="
+$all = $files | % { [pscustomobject]@{ Name=$_.Name; Text=(Get-Content $_.FullName -Raw) } }
+foreach($f in $files){ $n=$f.Name; if(-not ($all | ? { $_.Name -ne $n -and $_.Text -match [regex]::Escape($n) })){ $out += $n } }
+$out += "", "=== LEFTOVER KEYWORDS ==="
+$out += $files | Select-String -Pattern 'mock|seed|sample|dummy|demo|fake|placeholder|TODO|FIXME|coming soon|Color\(0x|[^a-zA-Z_]print\(' | % { "{0}:{1}: {2}" -f $_.Filename, $_.LineNumber, $_.Line.Trim() }
+$out | Out-File C:\dev\lib_inventory.txt -Encoding utf8
+"Saved C:\dev\lib_inventory.txt ($($out.Count) lines)"iner(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.75,
       ),
